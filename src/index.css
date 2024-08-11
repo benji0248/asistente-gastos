@@ -1,0 +1,99 @@
+*{
+    font-size: small;
+}
+
+.capitalize-first::first-letter{
+    text-transform: uppercase;
+}
+
+td {
+    vertical-align: middle;
+}
+
+.deleteIcon, .editIcon{
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.classContainer {
+    width: 100%;
+    max-width: 300px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1rem;
+    background-color: #e5e5e55d;
+    border-radius: 15px;
+}
+
+.instructions {
+    font-size: 0.751rem;
+    border-radius: 0.5rem;
+    background: #000;
+    color: #fff;
+    padding: 0.25rem;
+    position: relative;
+    bottom: -10px;
+}
+
+.instructions > svg {
+    margin-right: 0.25rem;
+}
+
+.offscreen {
+    position: absolute;
+    left: -9999px;
+}
+
+.hide {
+    display: none;
+}
+
+.valid {
+    color: limegreen;
+    margin-left: 0.25rem;
+}
+
+.invalid {
+    color: red;
+    margin-left: 0.25rem;
+}
+
+.errmsg {
+    background-color: lightpink;
+    color: firebrick;
+    font-weight: bold;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.line {
+    display: inline-block;
+    text-decoration: none !important; 
+    
+}
+
+input[type="text"],
+input[type="password"],
+button,
+textarea {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    flex-grow: 1;
+    padding-bottom: 1rem;
+}
+
+.verticalCenter{
+    justify-content: center;
+    align-items: center;
+}
