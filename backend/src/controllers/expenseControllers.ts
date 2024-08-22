@@ -6,12 +6,12 @@ class expenseControllers{
 
     static getExpenses = async (req: Request, res: Response) => {
         try {
-            const {user_id} = req.params.userId
+            const {userId} = req.params.userId
             const expenses = await expenseServices.getAllExpenses(user_id);
             if(expenses)
             res.status(200).json(expenses)
         } catch (err) {
-            console.error('Error en el controlador de obtener todos los gastos', err)
+            console.error('Error en el controlador getExpenses', err)
         }
     }
 
@@ -22,18 +22,19 @@ class expenseControllers{
             if(expense)
             res.status(200).json(expense)
         } catch (err) {
-            console.error('Error en el controlador para obtener un gasto', err)
+            console.error('Error en el controlador getExpense', err)
         }
     }
 
     static addExpense = async (req: Request, res: Response) => {
         try {
-            const {user_id} = req.params.userId
+            const {userId} = req.params.userId
+            const {categoryId} = req.params.categoryId
             const newExpenseData: newExpenses = req.body
-            const newExpense = expenseServices.createOneExpense(user_id,newExpenseData);
+            const newExpense = expenseServices.createOneExpense(userId,categoryId,newExpenseData);
             res.status(201).json(newExpense)
         } catch (err) {
-            console.error('Error en el controlador para agregar un gasto', err)
+            console.error('Error en el controlador addExpense', err)
         }
     }
 
@@ -44,7 +45,7 @@ class expenseControllers{
             const updatedData = expenseServices.updateOneExpense(expenseId, dataToUpdate)
             res.status(201).json(updatedData)
         } catch (err) {
-            console.error('Error en el controlador para actualizar un gasto.')
+            console.error('Error en el controlador updateExpense.')
         }
     }
 
@@ -54,7 +55,7 @@ class expenseControllers{
             expenseServices.deleteOneExpense(expenseId)
             res.status(200)
         }catch(err){
-            console.error('Error en el controlador de borrar gasto', err)
+            console.error('Error en el controlador deleteExpense', err)
         }
     }
 }

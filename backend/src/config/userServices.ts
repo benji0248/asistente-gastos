@@ -10,11 +10,11 @@ class userServices{
             }
             return result as Users[];
         } catch (err) {
-            console.error('Error al obtener usuarios:', err)
+            console.error('Error en el servicio getAllUsers:', err)
         }
     }
     
-    static getOneById = async (userId:string) => {
+    static getUserById = async (userId:string) => {
         try {
             const [row] = await db.query(`
                 SELECT * FROM users WHERE id = ?`, [userId])
@@ -23,7 +23,7 @@ class userServices{
             }
             return row as Users[]
         } catch (err) {
-            console.error('No se pudo obtener el usuario', err)
+            console.error('Error en el servicio getUserById', err)
         }
     }
     
@@ -32,7 +32,7 @@ class userServices{
             await db.query(`
             INSERT INTO users (name, email, password, created_at) VALUES(?,?,?, now())`, [dataUser.name, dataUser.email, dataUser.password])
         } catch (err) {
-            console.error('No se pudo crear el usuario correctamente', err)
+            console.error('Error en el servicio createOneUser', err)
         }
     }
     
@@ -45,7 +45,7 @@ class userServices{
                 WHERE id = ?`;
             await db.query(query, [value, userId])
         } catch (err) {
-            console.error('No se pudo actualizar el usuario', err)
+            console.error('Error en el servicio updateOneUser', err)
         }
     }
     
@@ -53,7 +53,7 @@ class userServices{
         try {
             await db.query(`DELETE FROM users WHERE id = ?`, [userId]);
         } catch (err) {
-            console.error('No se pudo borrar el usuario', err)
+            console.error('Error en el servicio deleteOneUser', err)
         }
     }
 }

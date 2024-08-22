@@ -20,11 +20,11 @@ class expenseServices{
         }
     }
 
-    static createOneExpense = async (dataExpense: newExpenses, userId: string) => {
+    static createOneExpense = async (userId:string, categoryId: string, dataExpense:newExpenses) => {
         try {
             await db.query(`
-                INSERT INTO expenses (title, amount, created_at, is_paid, user_id)
-                VALUES(?,?, now(),?)`, [dataExpense.title, dataExpense.amount, dataExpense.is_paid, userId])
+                INSERT INTO expenses (title, amount, created_at, is_paid, user_id, category_id)
+                VALUES(?,?, now(),?)`, [dataExpense.title, dataExpense.amount, dataExpense.is_paid, userId, categoryId])
         } catch (err) {
             console.error('Error en el servicio createOneExpense', err)
         }
