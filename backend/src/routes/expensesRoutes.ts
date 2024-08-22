@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { addExpense, getExpenses, getExpense, updateExpense } from "../controllers/expenseControllers";
+import { expenseControllers } from "../controllers/expenseControllers";
 
 const expensesRoutes = Router();
 
-expensesRoutes.get('/', getExpenses)
-expensesRoutes.get('/:id', getExpense)
-expensesRoutes.post('/', addExpense)
-expensesRoutes.put('/:id', updateExpense)
-/* expensesRoutes.delete('/:id', deleteExpense) */
+expensesRoutes.get('/', expenseControllers.getExpenses)
+expensesRoutes.get('/:expenseId', expenseControllers.getExpense)
+expensesRoutes.post('/', expenseControllers.addExpense)
+expensesRoutes.put('/:expenseId', expenseControllers.updateExpense)
+expensesRoutes.delete('/:expenseId', expenseControllers.deleteExpense) 
 
 export default expensesRoutes;

@@ -17,7 +17,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/usuarios', userRoutes);
-app.use('/gastos', expensesRoutes)
+app.use('/usuarios/:userId/gastos', expensesRoutes)
+app.use('/usuarios/:userId/categorias', categoriesRoutes)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
