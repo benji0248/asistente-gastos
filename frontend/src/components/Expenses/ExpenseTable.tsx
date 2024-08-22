@@ -1,7 +1,6 @@
-import { Badge, Col, Container, Row, Table } from "react-bootstrap"
+import {  Col, Container, Row, Table } from "react-bootstrap"
 import { type listOfExpenses } from "../../types"
 import { ExpenseTableItems } from "./ExpenseTableItems"
-import { sumatoria, sumatoriaPendientes } from "../../consts";
 
 interface Props {
     expenses: listOfExpenses

@@ -2,14 +2,14 @@ import { Route, Routes } from "react-router-dom"
 import Expenses from "./components/Expenses/Expenses"
 import { NavbarApp } from "./components/Navbar/NavbarApp"
 import { Container } from "react-bootstrap"
-import Profile from "./components/Profile/Profile"
 import { Register } from "./components/Auth/Register"
 import { Login } from "./components/Auth/Login"
 function App() {
   return (
     <Container>
     <NavbarApp />
-    <Routes>
+      <Routes>
+      <Route path="/" element={<Login/>}></Route>
       <Route path="/login" element={<Login/>}></Route>
       <Route path="/register" element={<Register/>}></Route>
       <Route path="/expenses" element={<Expenses/>}></Route>
@@ -17,6 +17,5 @@ function App() {
     </Container>
   ) 
 }
-
 export default App
  

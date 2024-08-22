@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Container, Form, FormControl, Row } from "react-bootstrap";
+import { Container, Row } from "react-bootstrap";
 import { FaInfoCircle, FaCheck, FaTimes } from "react-icons/fa";
+import axios from "../../api/axios";
     
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/;
+const REGISTER_URL = '/register';
 
 export const Register = () => {
 
@@ -57,8 +59,18 @@ export const Register = () => {
             setErrMsg('Usuario o Contraseña Invalidos')
             return;
         }
-        console.log(user, pwd);
-        setSuccess(true);
+        try {
+            const response = await axios.post(REGISTER_URL, JSON.stringify({ user, pwd }),
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: true
+                });
+            console.log(JSON.stringify(response.data));
+            console.log(JSON.stringify(response))
+            setSuccess(true)
+        } catch (err) {
+            setErrMsg('No se pudo registrar')
+        }
     }
 
     return (

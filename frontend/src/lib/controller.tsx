@@ -1,8 +1,8 @@
 import { addDoc, collection, deleteDoc, doc, getFirestore, setDoc } from "firebase/firestore";
-import { app } from "./firebase";
+import { db } from "./firebase";
 import { newExpense, Expense } from "../types";
 
-export const firestore = getFirestore(app);
+export const firestore = getFirestore(db);
 
 /* Coleccion de Gastos */
 export const expensesCollection = collection(firestore, 'expenses')
