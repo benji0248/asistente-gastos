@@ -25,3 +25,7 @@ export interface Expenses{
     payment_date: Date,
     is_paid: boolean
 }
+
+export interface newCategory{
+    name: string
+}

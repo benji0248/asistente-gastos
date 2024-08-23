@@ -13,8 +13,8 @@ class expenseServices{
 
     static getOneExpense = async (expenseId: string) => {
         try {
-            const [row] = await db.query(`SELECT * FROM expenses WHERE id = ?`, [expenseId])
-            return row as Expenses[]       
+            const [result] = await db.query(`SELECT * FROM expenses WHERE id = ?`, [expenseId])
+            return result as Expenses[]       
         } catch(err) {
             console.error('Error en el servicio getOneExpense', err)
         }

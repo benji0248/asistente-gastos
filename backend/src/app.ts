@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import userRoutes from './routes/userRoutes'
 import expensesRoutes from './routes/expensesRoutes'
+import categoriesRoutes from './routes/categoriesRoutes'
 
 dotenv.config()
 

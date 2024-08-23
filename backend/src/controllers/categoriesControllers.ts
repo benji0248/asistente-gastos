@@ -1,12 +1,12 @@
 import { Request, Response } from 'express'
-import { categoriesServices} from '../config/categoriesServices'
+import categoriesServices from '../config/categoriesServices'
 
 class categoriesControllers{
 
-    static getCategories = async (req:Request, res:Response) => {
+    static getAllCategories = async (req:Request, res:Response) => {
         try{
-            const {userId} = req.params.userId
-            const {categories} = await categoriesServices.getAllCategories(userId)
+            const userId = req.params.userId
+            const categories = await categoriesServices.getCategories(userId)
             if(categories)
             res.status(200).json(categories)
         }catch(err){
@@ -16,8 +16,8 @@ class categoriesControllers{
 
     static getCategory = async (req:Request, res:Response) => {
         try{
-            const {categoryId} = req.params.categoryId
-            const {row} = await categoriesServices.getOneCategory(category_id)
+            const categoryId = req.params.categoryId
+            const row = await categoriesServices.getOneCategory(categoryId)
             if(row)
             res.status(200).json(row)
 
@@ -27,10 +27,12 @@ class categoriesControllers{
     }
 
     static addCategory = async (req: Request, res:Response) => {
-        try{
-            const {userId} = req.params.user_id
-            const createdCategory = await categoriesServices.createOneCategory(user_id, req.body)
-            res.status(201).json(createdCategory)
+        try {
+            const userId = req.params.userId
+            if (userId) {
+                const createdCategory = await categoriesServices.createOneCategory(userId, req.body)
+                res.status(201).json(createdCategory)
+            }
         }catch(err){
             console.error('Error en el controlador addCategory')
         }
@@ -38,8 +40,8 @@ class categoriesControllers{
 
     static updateCategory = async (req: Request, res:Response) => {
         try{
-            const {categoryId} = req.params.category_id
-            const updatedCategory = await categoriesServices.updateOneCategory(category_id, req.body)
+            const categoryId = req.params.categoryId
+            const updatedCategory = await categoriesServices.updateOneCategory(categoryId, req.body)
             res.status(201).json(updatedCategory)
         }catch(err){
             console.error('Error en el controlador updateCategory')
@@ -48,8 +50,8 @@ class categoriesControllers{
 
     static deleteCategory = async (req:Request, res:Response) => {
         try{
-            const {categoryId} = req.params.category_id
-            await categoriesServices.deleteOneCategory(category_id)
+            const categoryId = req.params.categoryId
+            await categoriesServices.deleteOneCategory(categoryId)
             res.status(200)
         }catch(err){
             console.error('Error en el controlador deleteCategory')

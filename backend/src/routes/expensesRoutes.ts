@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { expenseControllers } from "../controllers/expenseControllers";
+import expenseControllers from "../controllers/expenseControllers";
 
-const expensesRoutes = Router();
+const expensesRoutes = Router({mergeParams:true});
 
 expensesRoutes.get('/', expenseControllers.getExpenses)
 expensesRoutes.get('/:expenseId', expenseControllers.getExpense)

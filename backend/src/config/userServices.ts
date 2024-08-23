@@ -8,7 +8,7 @@ class userServices{
             if (!result) {
                 throw new Error('No se encontraron usuarios')
             }
-            return result as Users[];
+            return result;
         } catch (err) {
             console.error('Error en el servicio getAllUsers:', err)
         }
@@ -57,3 +57,4 @@ class userServices{
         }
     }
 }
+export default userServices

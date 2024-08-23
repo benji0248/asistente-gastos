@@ -1,4 +1,4 @@
-import { expenseServices } from "../config/expenseServices";
+import  expenseServices  from "../config/expenseServices";
 import { Request, Response } from "express";
 import { Expenses, newExpenses } from "../config/types";
 
@@ -6,8 +6,8 @@ class expenseControllers{
 
     static getExpenses = async (req: Request, res: Response) => {
         try {
-            const {userId} = req.params.userId
-            const expenses = await expenseServices.getAllExpenses(user_id);
+            const userId = req.params.userId
+            const expenses = await expenseServices.getAllExpenses(userId);
             if(expenses)
             res.status(200).json(expenses)
         } catch (err) {
@@ -16,7 +16,7 @@ class expenseControllers{
     }
 
     static getExpense = async (req: Request, res: Response) => {
-        const { expenseId } = req.params.expenseId
+        const expenseId = req.params.expenseId
         try {
             const expense = await expenseServices.getOneExpense(expenseId)
             if(expense)
@@ -28,8 +28,8 @@ class expenseControllers{
 
     static addExpense = async (req: Request, res: Response) => {
         try {
-            const {userId} = req.params.userId
-            const {categoryId} = req.params.categoryId
+            const userId = req.params.userId
+            const categoryId = req.params.categoryId
             const newExpenseData: newExpenses = req.body
             const newExpense = expenseServices.createOneExpense(userId,categoryId,newExpenseData);
             res.status(201).json(newExpense)
@@ -39,7 +39,7 @@ class expenseControllers{
     }
 
     static updateExpense = async (req: Request, res: Response) => {
-        const { expenseId } = req.params.expenseId
+        const  expenseId  = req.params.expenseId
         const dataToUpdate: Expenses = req.body;
         try {
             const updatedData = expenseServices.updateOneExpense(expenseId, dataToUpdate)
@@ -50,7 +50,7 @@ class expenseControllers{
     }
 
     static deleteExpense = async (req: Request, res: Response) =>{
-        const { expenseId } = req.params.expenseId
+        const expenseId = req.params.expenseId
         try {
             expenseServices.deleteOneExpense(expenseId)
             res.status(200)

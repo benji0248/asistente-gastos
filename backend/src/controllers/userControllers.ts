@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
-import { userServices } from "../config/userServices";
+import  userServices  from "../config/userServices";
 import { newUsers, Users } from "../config/types";
 
 class userControllers {
 
-    static getUsers = async (res: Response) => {
+    static getUsers = async (req:Request, res: Response) => {
         try {
-            const users: Users[] | undefined = await userServices.getAllUsers()
+            const users = await userServices.getAllUsers()
+            console.log(users)
             res.status(200).json(users);
         } catch (err) {
             console.error('Error en el controlador getUsers', err)
