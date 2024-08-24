@@ -5,6 +5,7 @@ import axios from "../../api/axios";
     
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
 const REGISTER_URL = '/register';
 
 export const Register = () => {
@@ -15,6 +16,10 @@ export const Register = () => {
     const [user, setUser] = useState<string>('');
     const [validName, setValidName] = useState<boolean>(false);
     const [userFocus, setUserFocus] = useState<boolean>(false);
+
+    const [email, setEmail] = useState<string>('');
+    const [validEmail, setValidEmail] = useState<boolean>(false);
+    const [emailFocus, setEmailFocus] = useState<boolean>(false);
 
     const [pwd, setPwd] = useState<string>('');
     const [validPwd, setValidPwd] = useState<boolean>(false);
@@ -33,15 +38,16 @@ export const Register = () => {
 
     useEffect(() => {
         const result = USER_REGEX.test(user);
-        console.log(result);
-        console.log(user);
         setValidName(result);
     }, [user])
 
     useEffect(() => {
+        const result = EMAIL_REGEX.test(email);
+        setValidEmail(result)
+    }, [email])
+
+    useEffect(() => {
         const result = PWD_REGEX.test(pwd);
-        console.log(result);
-        console.log(pwd);
         setValidPwd(result);
         const match = pwd === matchPwd;
         setValidMatch(match);
@@ -55,12 +61,13 @@ export const Register = () => {
         e.preventDefault();
         const v1 = USER_REGEX.test(user);
         const v2 = PWD_REGEX.test(pwd);
-        if (!v1 || !v2) {
-            setErrMsg('Usuario o Contraseña Invalidos')
+        const v3 = EMAIL_REGEX.test(email)
+        if (!v1 || !v2 || !v3) {
+            setErrMsg('Uno de los campos es invalido')
             return;
         }
         try {
-            const response = await axios.post(REGISTER_URL, JSON.stringify({ user, pwd }),
+            const response = await axios.post(REGISTER_URL, JSON.stringify({ user, pwd, email }),
                 {
                     headers: { 'Content-Type': 'application/json' },
                     withCredentials: true
@@ -69,6 +76,7 @@ export const Register = () => {
             console.log(JSON.stringify(response))
             setSuccess(true)
         } catch (err) {
+            console.error('',err)
             setErrMsg('No se pudo registrar')
         }
     }
@@ -110,6 +118,27 @@ export const Register = () => {
                             Debe comenzar con una letra.<br />
                             Las letras, los numeros y unicamente el simbolo '_' estan permitidos.
                         </p>
+                            <Row className="justify-content-center">
+                                <label htmlFor="email">
+                                    Email:
+                                    <span className={validEmail ? "valid" : "hide"}><FaCheck /></span>
+                                    <span className={validEmail || !email ? "hide" : "invalid"}><FaTimes /></span>
+                                </label>
+                            </Row>
+                        <input
+                            type="email"
+                            id="email"
+                            autoComplete="off"
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            aria-invalid={validEmail? "false" : "true"}
+                            aria-describedby="uidnote"
+                            onFocus={() => setEmailFocus(true)}
+                            onBlur={() => setEmailFocus(false)}
+                        ></input>
+                        <p id="uidnote" className={emailFocus && email && !validEmail ? "instructions" : "offscreen"}>
+                            <FaInfoCircle /> El email ingresado no es valido.
+                        </p>
 
                         <label htmlFor="password">
                             Clave:
@@ -138,7 +167,7 @@ export const Register = () => {
                         </p>
 
                         <label htmlFor="confirm_pwd">
-                            Confirma la Clave:
+                            Confirmacion de clave:
                             <span className={validMatch && matchPwd ? 'valid' : 'hide'}> <FaCheck /></span>
                             <span className={validMatch || !matchPwd ? 'hide' : 'invalid'}><FaTimes /></span>
                         </label>
@@ -157,7 +186,7 @@ export const Register = () => {
                             <FaInfoCircle />
                             Las claves no coinciden.
                         </p>
-                        <button disabled={!validName || !validPwd || !validMatch ? true : false}>Registrarse</button>
+                        <button className="rButton" disabled={!validName || !validPwd || !validMatch ? true : false}>Registrarse</button>
                     </form>
                     <p>
                         ¿Ya estas registrado?<br />
