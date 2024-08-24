@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes'
 import expensesRoutes from './routes/expensesRoutes'
 import categoriesRoutes from './routes/categoriesRoutes'
 import registerRoute from './routes/registerRoute'
+import accountsRoutes from './routes/accountsRoutes'
 
 dotenv.config()
 
@@ -25,8 +26,10 @@ app.get('/', (req, res) => {
 
 app.use('/register', registerRoute)
 app.use('/users', userRoutes);
-app.use('/users/:userId/expenses', expensesRoutes)
-app.use('/users/:userId/categories', categoriesRoutes)
+app.use('/:userId/expenses', expensesRoutes)
+app.use('/:userId/categories', categoriesRoutes)
+app.use('/accounts', accountsRoutes);
+app.use('/:userId/accounts', accountsRoutes)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -6,10 +6,21 @@ import { Timestamp } from "firebase/firestore";
 
 function CreateExpense() {
 
-    const addNewExpense = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        addExpense({title, amount, type, createdDate, paidDate, paidMethod, paid})
-    }
+    const [title, setTitle] = useState<string>("")
+    const [amount, setAmount] = useState<number>(0)
+    const [type, setType] = useState<string>("")
+    const [createdDate, setCreatedDate] = useState<Timestamp>()
+    const [paidDate, setPaidDate] = useState<Timestamp>()
+    const [paidMethod, setPaidMethod] = useState<string>("")
+    const [paid, setPaid] = useState<boolean>(false)
+    const [show, setShow] = useState(false);
+    const handleClose = () => setShow(false);
+    const handleShow = () => {
+        setShow(true)
+        const date = actualDate();
+        setCreatedDate(date);
+        setPaidDate(date);
+    };
 
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value === 'true';
@@ -24,22 +35,11 @@ function CreateExpense() {
             setAmount(parseFloat(value))
         }
     }
-
-    const [show, setShow] = useState(false);
-    const handleClose = () => setShow(false);
-    const handleShow = () => {
-        setShow(true)
-        const date = actualDate();
-        setCreatedDate(date);
-        setPaidDate(date);
-    };
-    const [title, setTitle] = useState<string>("")
-    const [amount, setAmount] = useState<number>(0)
-    const [type, setType] = useState<string>("")
-    const [createdDate, setCreatedDate] = useState<Timestamp>()
-    const [paidDate, setPaidDate] = useState<Timestamp>()
-    const [paidMethod, setPaidMethod] = useState<string>("")
-    const [paid, setPaid] = useState<boolean>(false)
+    
+    const addNewExpense = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        addExpense({title, amount, type, createdDate, paidDate, paidMethod, paid})
+    }
 
     return (
         <>
