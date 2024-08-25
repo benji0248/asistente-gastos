@@ -30,7 +30,7 @@ class userServices{
     static createOneUser = async (dataUser:newUsers) => {
         try {
             await db.query(`
-            INSERT INTO users (name, email, password, created_at) VALUES(?,?,?, now())`, [dataUser.name, dataUser.email, dataUser.password])
+            INSERT INTO users (user, email, pwd, created_at) VALUES(?,?,?, now())`, [dataUser.user, dataUser.email, dataUser.pwd])
         } catch (err) {
             console.error('Error en el servicio createOneUser', err)
         }

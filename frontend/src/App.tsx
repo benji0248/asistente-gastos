@@ -4,15 +4,24 @@ import { NavbarApp } from "./components/Navbar/NavbarApp"
 import { Container } from "react-bootstrap"
 import { Register } from "./components/Auth/Register"
 import { Login } from "./components/Auth/Login"
+import RequireAuth from "./components/RequireAuth"
+import Profile from "./components/Profile/Profile"
+import Home from "./components/Home"
+
 function App() {
   return (
     <Container>
     <NavbarApp />
       <Routes>
-      <Route path="/" element={<Login/>}></Route>
+      <Route path="/" element={<Home/>}></Route>
+      <Route path="/home" element={<Home/>}></Route>
       <Route path="/login" element={<Login/>}></Route>
-      <Route path="/register" element={<Register/>}></Route>
-      <Route path="/expenses" element={<Expenses/>}></Route>
+      <Route path="/register" element={<Register />}></Route>
+        
+      <Route element={<RequireAuth />}>
+          <Route path="/expenses" element={<Expenses />}></Route>
+          <Route path="/profile" element={<Profile />}></Route>
+      </Route>
     </Routes>
     </Container>
   ) 

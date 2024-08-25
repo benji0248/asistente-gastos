@@ -1,22 +1,27 @@
-import { useContext, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Container } from "react-bootstrap";
-import { AuthContext } from "../../context/AuthProvider";
+import useAuth from "../../hooks/useAuth";
 import axios from "../../api/axios";
-import {AxiosError} from "axios";
+import { AxiosError } from "axios";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const LOGIN_URL = '/auth'
 
 
 export const Login = () => {
 
-    const {setAuth} = useContext(AuthContext)
+    const { setAuth } = useAuth();
+
+    const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.from?.pathname || "/";
+
     const userRef = useRef<HTMLInputElement>(null);
     const errRef = useRef<HTMLParagraphElement>(null);
 
     const [user, setUser] = useState<string>('');
     const [pwd, setPwd] = useState<string>('');
     const [errMsg, setErrMsg] = useState<string>('');
-    const [success, setSuccess] = useState<boolean>(false);
 
     useEffect(() => {
         userRef.current?.focus();
@@ -43,7 +48,8 @@ export const Login = () => {
             setAuth({ user, pwd, roles, accessToken });
             setUser('')
             setPwd(''),
-                setSuccess(true);
+            navigate(from, { replace: true });
+            
         } catch (err) {
             const error = err as AxiosError
             if (!error?.response) {

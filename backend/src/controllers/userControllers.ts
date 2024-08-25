@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import  userServices  from "../config/userServices";
 import { newUsers, Users } from "../config/types";
+import bcrypt from 'bcrypt'
+import { db } from "../database/database";
 
 class userControllers {
 
@@ -15,10 +17,12 @@ class userControllers {
     }
 
     static addUser = async (req: Request, res: Response) => {
+        const { user, email, pwd } = req.body;
+        if (!user || !email || !pwd) return res.status(400).json({ 'message': 'Datos invalidos' })
+        const duplicate = db.query(`SELECT COUNT (*) FROM users WHERE (user, email) VALUES (?,?)`, [user, email]);
+        
         try {
-            const newUser: newUsers = req.body
-            const user = await userServices.createOneUser(newUser)
-            res.status(201).json(user);
+
         } catch (err) {
             console.error('Error en el controlador addUser', err)
         }

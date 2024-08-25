@@ -1,14 +1,14 @@
 export interface newUsers{
-    name: string,
+    user: string,
     email: string,
-    password: string,
+    pwd: string,
 }
 
 export interface Users{
     id:string,
-    name: string,
+    user: string,
     email: string,
-    password: string,
+    pwd: string,
     created_at: Date,
 }
 

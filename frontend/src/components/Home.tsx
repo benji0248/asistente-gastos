@@ -1,7 +1,7 @@
 import { Container } from "react-bootstrap"
 
 
-function Profile() {
+const Home = () => {
     return (
         <Container>
             <h1>Hola</h1>
@@ -9,4 +9,4 @@ function Profile() {
     )
 }
 
-export default Profile
+export default Home;

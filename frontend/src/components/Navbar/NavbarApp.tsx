@@ -9,11 +9,11 @@ export const NavbarApp: React.FC = () => {
         
         <Navbar expand="lg">
             <Container fluid>
-            <NavbarBrand href="/" aria-controls="navbar-nav"><GrNotes className="me-2" />Control de Gastos</NavbarBrand>
+            <NavbarBrand href="/home" aria-controls="navbar-nav"><GrNotes className="me-2" />Control de Gastos</NavbarBrand>
             <NavbarToggle aria-controls="navbar-nav"/>
             <NavbarCollapse id="navbar-nav">
                 <Nav className="me-auto">
-                    <NavLink href="/" disabled>Inicio</NavLink>
+                    <NavLink href="/home">Inicio</NavLink>
                     <NavLink href="/expenses">Gastos</NavLink>
                     <NavLink href="/profile">Cuenta</NavLink>
                     <NavLink href="#compras" disabled>Lista de Compras</NavLink>

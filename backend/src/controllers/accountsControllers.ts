@@ -5,7 +5,7 @@ class accountsControllers{
 
     static getAccounts = async(req:Request, res:Response) => {
         try{
-            const {userId} = req.params.userId
+            const userId = req.params.userId
             const accounts = await accountsServices.getAllAccounts(userId)
             res.status(200).json(accounts)
         }catch(err){
@@ -15,7 +15,7 @@ class accountsControllers{
 
     static getAccount = async(req:Request, res:Response) => {
         try{
-            const {accountId} = req.params.accountId
+            const accountId = req.params.accountId
             const account = await accountsServices.getOneAccount(accountId)
             res.status(200).json(account);
         }catch(err){
@@ -25,7 +25,7 @@ class accountsControllers{
 
     static createAccount = async(req:Request, res:Response) => {
         try{
-            const {userId} = req.params.userId
+            const userId = req.params.userId
             await accountsServices.addAccount(userId, req.body)
             res.status(201);
         }catch(err){
@@ -35,7 +35,7 @@ class accountsControllers{
 
     static updateOneAccount = async(req:Request, res:Response) => {
         try{
-            const {accountId} = req.params.accountId
+            const accountId = req.params.accountId
             await accountsServices.updateAccount(accountId,req.body)
             res.status(200);
         }catch(err){
@@ -45,7 +45,7 @@ class accountsControllers{
 
     static updateBalanceAccount = async(req:Request, res:Response) => {
         try{
-            const {accountId} = req.params.accountId
+            const accountId = req.params.accountId
             const {balance} = req.body.balance
             await accountsServices.updateBalance(accountId, balance)
             res.status(200);
@@ -56,7 +56,7 @@ class accountsControllers{
 
     static deleteOneAccount = async(req:Request, res:Response) => {
         try{
-            const {accountId} = req.params.accountId
+            const accountId = req.params.accountId
             await accountsServices.deleteAccount(accountId)
             res.status(200);
         }catch(err){
