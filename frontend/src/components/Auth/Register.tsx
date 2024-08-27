@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Container, Row } from "react-bootstrap";
 import { FaInfoCircle, FaCheck, FaTimes } from "react-icons/fa";
 import axios from "../../api/axios";
+import { AxiosError } from "axios";
     
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/;
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/;
@@ -77,8 +78,23 @@ export const Register = () => {
             console.log(JSON.stringify(response))
             setSuccess(true)
         } catch (err) {
-            console.error('',err)
-            setErrMsg('No se pudo registrar')
+            let errorMessage = 'Error al registrarse. Por favor, intente de nuevo.';
+            console.log('Este es el error que se esta pasando',err)
+
+            if (err instanceof AxiosError) {
+                if (err.response) {
+
+                    errorMessage = err.response.data.message || 'Error en la solicitud';
+                } else if (err.request) {
+
+                    errorMessage = 'No se recibió respuesta del servidor';
+                } else {
+
+                    errorMessage = err.message;
+                }
+            }
+            console.log(err)
+            setErrMsg(errorMessage)
         }
     }
 

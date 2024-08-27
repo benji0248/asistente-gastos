@@ -5,7 +5,7 @@ import axios from "../../api/axios";
 import { AxiosError } from "axios";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
-const LOGIN_URL = '/auth'
+const LOGIN_URL = '/login'
 
 
 export const Login = () => {
@@ -37,7 +37,7 @@ export const Login = () => {
         try {
             const response = await axios.post(LOGIN_URL, JSON.stringify({ user, pwd }),
                 {
-                    headers: { 'Content-Type': 'application/jason' },
+                    headers: { 'Content-Type': 'application/json' },
                     withCredentials: true
                 }
             );
@@ -51,17 +51,23 @@ export const Login = () => {
             navigate(from, { replace: true });
             
         } catch (err) {
-            const error = err as AxiosError
-            if (!error?.response) {
-                setErrMsg('No hay respuesta del servidor');
-            } else if (error.response?.status === 400) {
-                setErrMsg('Falta el Usuario o la Contraseña');
-            } else if (error.response?.status === 401) {
-                setErrMsg('Autorizacion no permitida')
-            } else {
-                setErrMsg('Fallo en el login')
+            let errorMessage = 'Error al inciar sesion. Por favor, intente de nuevo.';
+            console.log('Este es el error que se esta pasando',err)
+
+            if (err instanceof AxiosError) {
+                if (err.response) {
+
+                    errorMessage = err.response.data.message || 'Error en la solicitud';
+                } else if (err.request) {
+
+                    errorMessage = 'No se recibió respuesta del servidor';
+                } else {
+
+                    errorMessage = err.message;
+                }
             }
-            errRef.current?.focus();
+            console.log(err)
+            setErrMsg(errorMessage)
         }
     }
 

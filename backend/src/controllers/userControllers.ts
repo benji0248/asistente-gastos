@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import  userServices  from "../config/userServices";
-import { newUsers, Users } from "../config/types";
+import { handleDuplicate } from "../middlewares/handleDuplicate";
 import bcrypt from 'bcrypt'
-import { db } from "../database/database";
 
 class userControllers {
 
@@ -19,12 +18,25 @@ class userControllers {
     static addUser = async (req: Request, res: Response) => {
         const { user, email, pwd } = req.body;
         if (!user || !email || !pwd) return res.status(400).json({ 'message': 'Datos invalidos' })
-        const duplicate = db.query(`SELECT COUNT (*) FROM users WHERE (user, email) VALUES (?,?)`, [user, email]);
-        
-        try {
-
-        } catch (err) {
-            console.error('Error en el controlador addUser', err)
+        const duplicateUser = await handleDuplicate({user})
+        const duplicateEmail = await handleDuplicate({email})
+        if (duplicateUser === true) {
+            return res.status(409).json({message: 'El usuario ingresado ya esta en uso'})
+        } else if (duplicateEmail === true) {
+            return res.status(409).json({message: 'El email ingresado ya esta en uso'});
+        } else {
+            try {
+                const hashedPwd = await bcrypt.hash(pwd, 10);
+                const newUser = {
+                    user,
+                    email,
+                    pwd:hashedPwd
+                }
+                await userServices.createOneUser(newUser)
+                res.status(200)
+            } catch (err) {
+                console.error('Error en el controlador addUser', err)
+            }
         }
     }
 

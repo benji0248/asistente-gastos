@@ -6,6 +6,7 @@ import expensesRoutes from './routes/expensesRoutes'
 import categoriesRoutes from './routes/categoriesRoutes'
 import registerRoute from './routes/registerRoute'
 import accountsRoutes from './routes/accountsRoutes'
+import loginRoute from './routes/loginRoute'
 
 dotenv.config()
 
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/register', registerRoute)
+app.use('/login', loginRoute)
 app.use('/users', userRoutes);
 app.use('/:userId/expenses', expensesRoutes)
 app.use('/:userId/categories', categoriesRoutes)
