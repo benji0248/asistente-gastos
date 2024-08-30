@@ -26,11 +26,21 @@ class userServices{
             console.error('Error en el servicio getUserById', err)
         }
     }
+
+    static getUserId = async (username: string) => {
+        try {
+            const [user] = await db.query(`SELECT * FROM users WHERE username = ?`, username)
+            const [typedUser] = user as Users[]
+            return typedUser.id
+        } catch (err) {
+            console.error('Error en el servicio getUserId', err);
+        }
+    }
     
     static createOneUser = async (dataUser:newUsers) => {
         try {
             await db.query(`
-            INSERT INTO users (user, email, pwd, created_at) VALUES(?,?,?, now())`, [dataUser.user, dataUser.email, dataUser.pwd])
+            INSERT INTO users (username, email, pwd, created_at) VALUES(?,?,?, now())`, [dataUser.username, dataUser.email, dataUser.pwd])
         } catch (err) {
             console.error('Error en el servicio createOneUser', err)
         }

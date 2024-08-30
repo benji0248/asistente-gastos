@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import  userServices  from "../config/userServices";
 import { handleDuplicate } from "../middlewares/handleDuplicate";
 import bcrypt from 'bcrypt'
+import { roleAsignment } from "../middlewares/roleAsignment";
+import roleServices from "../config/roleServices";
 
 class userControllers {
 
@@ -16,9 +18,9 @@ class userControllers {
     }
 
     static addUser = async (req: Request, res: Response) => {
-        const { user, email, pwd } = req.body;
-        if (!user || !email || !pwd) return res.status(400).json({ 'message': 'Datos invalidos' })
-        const duplicateUser = await handleDuplicate({user})
+        const { username, email, pwd } = req.body;
+        if (!username || !email || !pwd) return res.status(400).json({ 'message': 'Datos invalidos' })
+        const duplicateUser = await handleDuplicate({username})
         const duplicateEmail = await handleDuplicate({email})
         if (duplicateUser === true) {
             return res.status(409).json({message: 'El usuario ingresado ya esta en uso'})
@@ -26,13 +28,17 @@ class userControllers {
             return res.status(409).json({message: 'El email ingresado ya esta en uso'});
         } else {
             try {
+                const roleId = await roleServices.defaultRoleId();
                 const hashedPwd = await bcrypt.hash(pwd, 10);
                 const newUser = {
-                    user,
+                    username,
                     email,
                     pwd:hashedPwd
                 }
                 await userServices.createOneUser(newUser)
+                const userId = await userServices.getUserId(username)
+                if(userId)
+                await roleAsignment(userId, roleId)
                 res.status(200)
             } catch (err) {
                 console.error('Error en el controlador addUser', err)

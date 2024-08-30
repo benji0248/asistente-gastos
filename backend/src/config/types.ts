@@ -1,12 +1,12 @@
 export interface newUsers{
-    user: string,
+    username: string,
     email: string,
     pwd: string,
 }
 
 export interface Users{
     id:string,
-    user: string,
+    username: string,
     email: string,
     pwd: string,
     created_at: Date,
@@ -44,4 +44,16 @@ export interface Account{
     balance:number,
     description:string,
     created_at:Date
+}
+
+export interface Token{
+    id: string,
+    user_id: string,
+    token: string,
+    created_at:Date
+}
+
+export interface Role{
+    id: string,
+    name: string
 }
