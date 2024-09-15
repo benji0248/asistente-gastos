@@ -102,3 +102,35 @@ form {
     justify-content: center;
     align-items: center;
 }
+
+.login-nav{
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+}
+
+@media (max-width: 992px) {
+    .login-nav{
+        order: 0;
+    }
+}
+.linksNav{
+display: flex;
+}
+
+.loginLink{
+    color: black;
+    font-weight: bold;
+}
+
+.registerLink{
+    display: flex ;
+    background-color: #f4a261;
+    border-radius: 10px;
+    color: black;
+    padding: 3px;
+    font-size: small;
+    justify-content: center;
+    align-items: center;
+    width: 60px;
+}

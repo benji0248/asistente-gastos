@@ -10,6 +10,7 @@ export interface Users{
     email: string,
     pwd: string,
     created_at: Date,
+    role:number
 }
 
 export interface newExpenses{

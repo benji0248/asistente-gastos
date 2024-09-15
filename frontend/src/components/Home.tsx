@@ -1,10 +1,11 @@
 import { Container } from "react-bootstrap"
+import CreateAccount from "./Profile/createAccount";
 
 
 const Home = () => {
     return (
         <Container>
-            <h1>Hola</h1>
+            <CreateAccount/>
         </Container>
     )
 }

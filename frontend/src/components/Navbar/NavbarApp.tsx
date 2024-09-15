@@ -1,4 +1,4 @@
-import { Container, Nav, Navbar, NavbarBrand, NavbarCollapse, NavbarToggle, NavLink } from "react-bootstrap"
+import { Container, Nav, Navbar, NavbarBrand, NavbarCollapse, NavbarToggle, NavItem, NavLink } from "react-bootstrap"
 import { GrNotes } from "react-icons/gr"
 
 
@@ -8,20 +8,23 @@ export const NavbarApp: React.FC = () => {
         
         
         <Navbar expand="lg">
-            <Container fluid>
             <NavbarBrand href="/home" aria-controls="navbar-nav"><GrNotes className="me-2" />Control de Gastos</NavbarBrand>
-            <NavbarToggle aria-controls="navbar-nav"/>
-            <NavbarCollapse id="navbar-nav">
-                <Nav className="me-auto">
+            <Nav className="login-nav">
+                <NavItem>
+                  <NavLink href="/login" className="loginLink">Login</NavLink>  
+                </NavItem>
+                <NavItem>
+                 <NavLink href="/register" className="registerLink">Register</NavLink>   
+                </NavItem>
+            </Nav>
+            <NavbarToggle aria-controls="navbar-nav" /> 
+            <NavbarCollapse id="navbar-nav" className="linksNav">
+                <Nav>
                     <NavLink href="/home">Inicio</NavLink>
-                    <NavLink href="/expenses">Gastos</NavLink>
-                    <NavLink href="/profile">Cuenta</NavLink>
-                    <NavLink href="#compras" disabled>Lista de Compras</NavLink>
-                    <NavLink href="/login">Login</NavLink>
-                    <NavLink href="/register">Register</NavLink>
+                    <NavLink href="/:userId/expenses">Gastos</NavLink>
+                    <NavLink href="/:userId/profile">Cuenta</NavLink>
                 </Nav>
-            </NavbarCollapse>
-            </Container>
+            </NavbarCollapse> 
         </Navbar>
         
     )

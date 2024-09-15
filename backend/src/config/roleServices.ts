@@ -1,21 +1,13 @@
 import { db } from "../database/database";
-import { Role } from "./types";
+import { Role, Users } from "./types";
 
 class roleServices {
 
-    static getRoleId = async (role: string) => {
-        const [result] = await db.query(`SELECT * FROM roles WHERE rol = ?`, role);
-        const [typedResult] = result as Role[]
-        return typedResult.id
+    static getRole = async (userId: string) => {
+        const [result] = await db.query(`SELECT * FROM users WHERE id = ?`, userId);
+        const [typedResult] = result as Users[]
+        return typedResult.roles;
     }
-
-    static defaultRoleId = async () => {
-        const role = 'user'
-        const [result] = await db.query(`SELECT * FROM roles WHERE rol = ?`, role);
-        const [typedResult] = result as Role[]
-        return typedResult.id
-    }
-    
 
 }
 

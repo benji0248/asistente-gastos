@@ -40,6 +40,32 @@ export interface newUser {
     tarjetas: string[]
 }
 
+export interface newCategory{
+    name: string,
+    user_id: string
+}
+
+export interface Category{
+    id: string
+    name: string
+    user_id: string
+}
+
+export interface newAccount{
+    type: string,
+    balance: number,
+    description: string
+}
+
+export interface Account {
+    id: string,
+    user_id: string,
+    type: string,
+    balance: number,
+    description: string,
+    created_at: Date
+}
+
 export type listOfExpenses = Expense[]
 
 export type FilterValue = typeof EXPENSE_FILTERS[keyof typeof EXPENSE_FILTERS]

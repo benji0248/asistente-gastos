@@ -25,10 +25,22 @@ class accountsServices{
     static addAccount = async (userId:string, dataAccout:newAccount) => {
         try{
             await db.query (`
-                INSER INTO accounts (user_id, type, balance, description, created_at)
+                INSERT INTO accounts (user_id, type, balance, description, created_at)
                 VALUES (?,?,?,?,now())`,[userId, dataAccout.type, dataAccout.balance, dataAccout.description])
         }catch(err){
             console.error('Error en el servicio addAccount', err)
+        }
+    }
+
+    static setDefaultAccount = async (userId: string) => {
+        const type = "cash"
+        const balance = 0
+        const description = "efectivo"
+        try {
+            await db.query(`INSERT INTO accounts (user_id, type, balance, description, created_at)
+                VALUES (?,?,?,?,now())`, [userId, type, balance, description])
+        } catch (err) {
+            console.error('Error en el servicio setDefaultAccount', err)
         }
     }
 

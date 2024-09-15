@@ -4,13 +4,13 @@ import { handleDuplicate } from "../middlewares/handleDuplicate";
 import bcrypt from 'bcrypt'
 import { roleAsignment } from "../middlewares/roleAsignment";
 import roleServices from "../config/roleServices";
+import accountsServices from "../config/accountsServices";
 
 class userControllers {
 
     static getUsers = async (req:Request, res: Response) => {
         try {
             const users = await userServices.getAllUsers()
-            console.log(users)
             res.status(200).json(users);
         } catch (err) {
             console.error('Error en el controlador getUsers', err)
@@ -28,7 +28,6 @@ class userControllers {
             return res.status(409).json({message: 'El email ingresado ya esta en uso'});
         } else {
             try {
-                const roleId = await roleServices.defaultRoleId();
                 const hashedPwd = await bcrypt.hash(pwd, 10);
                 const newUser = {
                     username,
@@ -37,8 +36,8 @@ class userControllers {
                 }
                 await userServices.createOneUser(newUser)
                 const userId = await userServices.getUserId(username)
-                if(userId)
-                await roleAsignment(userId, roleId)
+                if (userId)
+                await accountsServices.setDefaultAccount(userId);
                 res.status(200)
             } catch (err) {
                 console.error('Error en el controlador addUser', err)

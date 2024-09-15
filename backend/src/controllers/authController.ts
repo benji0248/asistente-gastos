@@ -11,39 +11,52 @@ dotenv.config();
 const path = require('path')
 
 export const handleLogin = async (req: Request, res: Response) => {
-    const { username, pwd } = req.body;
-    if (!username) {
+    const cookies = req.cookies;
+    const { user, pwd } = req.body;
+    if (!user) {
         return res.status(400).json({'message': 'Ingrese el usuario por favor'})
     } else if (!pwd) {
         return res.status(400).json({'message': 'Ingrese la contraseña por favor'})
     } else {
         try {
-            const [foundUser] = await db.query<RowDataPacket[]>(`SELECT * FROM users WHERE username = ?`, username)
+            const [foundUser] = await db.query<RowDataPacket[]>(`SELECT * FROM users WHERE username = ?`, user)
             if (foundUser.length === 0) return res.status(400).json({ message: 'Usuario incorrecto' })
             const [typeFoundUser] = foundUser as Users[]
+            const [foundToken] = await db.query<RowDataPacket[]>(`SELECT * FROM tokens WHERE user_id = ?`, [typeFoundUser.id])
             const match = await bcrypt.compare(pwd, typeFoundUser.pwd)
+            console.log(match)
             if(!match) return res.status(400).json({message:'Clave incorrecta'})
         if (match) {
             const accessSecret = process.env.ACCESS_TOKEN_SECRET;
             const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
-            if(!accessSecret || !refreshSecret) throw new Error('El token no esta definido.')
+            if (!accessSecret || !refreshSecret) throw new Error('El token no esta definido.')
+            const role = typeFoundUser.role
+            const id = typeFoundUser.id
             const accessToken = jwt.sign(
-            
                 {
+                "UserInfo": {
                     "username": typeFoundUser.username,
-                    "roles"
-                 },
+                    "role": typeFoundUser.role,
+                    "id": typeFoundUser.id
+                    }
+                },
                 accessSecret,
-                { expiresIn: '30s'}
+                { expiresIn: '180s'}
             )
-            const refreshToken = jwt.sign(
+            const newRefreshToken = jwt.sign(
                 { "username": typeFoundUser.username },
                 refreshSecret,
                 { expiresIn: '1d'}
             )
-            await handleTokenInsertion(refreshToken, typeFoundUser.id)
-            res.cookie('jwt', refreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
-            res.json({accessToken})
+
+            if (cookies?.jwt) {
+                await db.query(`DELETE FROM tokens WHERE token = ? AND user_id = ?`, [cookies.jwt, typeFoundUser.id])
+                res.clearCookie('jwt', { httpOnly: true, sameSite: 'none', secure: true })
+            }
+
+            await handleTokenInsertion(newRefreshToken, typeFoundUser.id)
+            res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
+            res.json({role, accessToken, id})
             }
         } catch (err) {
             res.status(400)

@@ -1,11 +1,20 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Button, Form, Modal, ModalBody, ModalHeader, ModalTitle } from "react-bootstrap";
 import { actualDate } from "../../consts";
-import { addExpense } from "../../lib/controller";
+import useAuth from "../../hooks/useAuth";
+import { useAxiosPrivate } from "../../hooks/useAxiosPrivate";
 import { Timestamp } from "firebase/firestore";
+import { Category } from "../../types";
 
 function CreateExpense() {
 
+    /* id char(36) PK 
+    user_id char(36) 
+    type enum('cash','bank_account','debit_card','credit_card','virtual_wallet') 
+    balance decimal(10,2) 
+    description varchar(100) 
+    created_at timestamp */
+    const { auth } = useAuth();
     const [title, setTitle] = useState<string>("")
     const [amount, setAmount] = useState<number>(0)
     const [type, setType] = useState<string>("")
@@ -14,6 +23,8 @@ function CreateExpense() {
     const [paidMethod, setPaidMethod] = useState<string>("")
     const [paid, setPaid] = useState<boolean>(false)
     const [show, setShow] = useState(false);
+    const [categories, setCategories] = useState<Category[]>([])
+    const axiosPrivate = useAxiosPrivate();
     const handleClose = () => setShow(false);
     const handleShow = () => {
         setShow(true)
@@ -22,12 +33,17 @@ function CreateExpense() {
         setPaidDate(date);
     };
 
+    useEffect(() => {
+        axiosPrivate.get(`/${auth.id}/categories`).then(response => { setCategories(response.data) })
+        .catch(error =>{console.error('Error fetching cateogires:', error)})
+    },[])
+
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value === 'true';
         setPaid(value);
     }
 
-    const hanldeAmountChange = (e:string) =>{
+    const handleAmountChange = (e:string) =>{
         const value = e;
         if (value === '') {
             setAmount(0)
@@ -38,7 +54,17 @@ function CreateExpense() {
     
     const addNewExpense = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        addExpense({title, amount, type, createdDate, paidDate, paidMethod, paid})
+        const newExpenseData = {
+            title: title,
+            amount: amount,
+            payment_date: paidDate,
+            is_paid: paid,
+            user_id: auth.id,
+            category_id: type
+        }
+        axiosPrivate.post(`/${auth.id}/expenses`, {
+
+        })
     }
 
     return (
@@ -68,24 +94,18 @@ function CreateExpense() {
                             placeholder="Ingrese el monto a pagar"
                             name='amount'
                             value={amount}
-                            onChange={(e) =>  hanldeAmountChange(e.target.value)}
+                            onChange={(e) =>  handleAmountChange(e.target.value)}
                             className="mb-1"
                             required
                             />
                         <Form.Label>Categoria</Form.Label>
                         <Form.Select aria-label="type-expense" className="mb-1" name='type' value={type} onChange={(e) => setType(e.target.value)} required>
                             <option>Elija la categoria del gasto</option>
-                            <option value="alquiler">Alquiler</option>
-                            <option value="servicios">Servicios</option>
-                            <option value="comida">Comida</option>
-                            <option value="super">Super</option>
-                            <option value="ropa">Ropa</option>
-                            <option value="gym">Gym</option>
-                            <option value="uber">Uber</option>
-                            <option value="compras">Compras</option>
-                            <option value="sube">Sube</option>
-                            <option value="envios">Envio de Plata</option>
-                            <option value="varios">Varios</option>
+                                {categories.map(category => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
+                                    </option>
+                                ))}
                         </Form.Select>
                         <Form.Label>Pagado</Form.Label>
                         <br />
@@ -102,12 +122,12 @@ function CreateExpense() {
                             <option value="credito">Tarjeta de Credito</option>
                         </Form.Select>
                         </Form.Group>
+                        </Form>
+                        </ModalBody>
                         <Modal.Footer>
                             <Button variant='secondary' size='sm' onClick={handleClose}>Cerrar</Button>
                             <Button variant='success' size='sm' type='submit' onClick={handleClose}>Agregar Gasto</Button>
                         </Modal.Footer>
-                </Form>
-            </ModalBody>
         </Modal>
         </>
     )
