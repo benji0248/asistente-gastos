@@ -1,7 +1,8 @@
 import React, { useState } from "react"
 import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap"
 import { MdDelete } from "react-icons/md"
-import { deleteExpese } from "../../lib/controller"
+import { axiosPrivate } from "../../api/axios"
+import useAuth from "../../hooks/useAuth"
 
 interface Props {
     id: string
@@ -10,12 +11,25 @@ interface Props {
 
 export const DeleteModalExpense: React.FC<Props> = ({ id, title }) => {
 
+    const { auth } = useAuth();
     const [show, setShow] = useState(false)
     const handleClose = () => setShow(false)
-    const handleShow = () => setShow(true)
-
-    const handleDelete = () => {
-        deleteExpese(id);
+    const handleShow = () => {
+        console.log(auth.id)
+    console.log(id)
+        setShow(true)
+    }
+    const handleDelete = async () => {
+        try {
+            const response = await axiosPrivate.delete(`/${auth.id}/expenses/${id}`,
+                {
+                    withCredentials: true
+                    
+                });
+            
+        } catch (err) {
+            console.log('Error en el componente DeleteExpenses', err)
+        }
         handleClose;
     }
 

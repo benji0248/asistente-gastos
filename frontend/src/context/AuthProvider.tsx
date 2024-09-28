@@ -14,7 +14,7 @@ export const AuthContext = createContext<AuthContextType | any>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     
-    const [auth, setAuth] = useState<AuthData>({token: '', userId:''});
+    const [auth, setAuth] = useState<AuthData | null>(null);
 
     return (
 

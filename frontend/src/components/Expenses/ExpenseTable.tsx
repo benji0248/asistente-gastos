@@ -1,12 +1,17 @@
 import {  Col, Container, Row, Table } from "react-bootstrap"
-import { type listOfExpenses } from "../../types"
+import { listOfAccounts, listOfCategories, type listOfExpenses } from "../../types"
 import { ExpenseTableItems } from "./ExpenseTableItems"
 
 interface Props {
     expenses: listOfExpenses
+    categories: listOfCategories
+    accounts: listOfAccounts
 }
 
-export const ExpenseTable: React.FC<Props> = ({ expenses }) => {
+export const ExpenseTable: React.FC<Props> = ({ expenses, categories, accounts }) => {
+
+    const categoryMap = new Map(categories.map(category => [category.id, category.name]));
+    const accountMap = new Map(accounts.map(account => [account.id, account.description]));
     
     return (
         
@@ -27,6 +32,10 @@ export const ExpenseTable: React.FC<Props> = ({ expenses }) => {
                 
                             <ExpenseTableItems
                                 expense={expense}
+                                categoryMap={categoryMap}
+                                accountMap={accountMap}
+                                categories={categories}
+                                accounts={accounts}
                             />
                 
                         ))}

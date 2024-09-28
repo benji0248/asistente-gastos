@@ -1,16 +1,18 @@
 import { Badge, Container } from "react-bootstrap"
-import { FilterValue, listOfExpenses } from "../../types"
+import { Category, listOfExpenses } from "../../types"
 import { FilterExpenses } from "./FilterExpenses"
-import CreateExpense from "./CreateExpense"
 import { sumatoria, sumatoriaPendientes } from "../../consts"
+import { CreateExpense } from "./CreateExpense"
+import CreateCategory from "./CreateCategory"
 
 interface Props {
     activeCount: number
     completedCount: number
-    filterSelected: FilterValue
+    filterSelected: string | undefined
     onClearCompleted: () => void
-    handleFilterChange: (filter: FilterValue) => void
+    handleFilterChange: (category_id: string | undefined) => void
     expenses: listOfExpenses
+    categories: Category[]
 }
 
 export const ExpenseHeader: React.FC<Props> = ({
@@ -18,12 +20,13 @@ export const ExpenseHeader: React.FC<Props> = ({
     completedCount = 0,
     filterSelected,
     handleFilterChange,
-    expenses
+    expenses,
+    categories
 }) => {
 
     return (
 
-        <Container>
+        <Container>º
             <Container className="mb-2 d-flex" >
             <span>
                 Gastos Pendientes <Badge bg="danger">{completedCount}</Badge>
@@ -31,14 +34,18 @@ export const ExpenseHeader: React.FC<Props> = ({
             <span className="ms-2">
                 Gastos del Mes <Badge bg="success">{activeCount}</Badge>
                 </span>
-                <CreateExpense/>
-                <span className="mx-2 fs-5 ms-auto">Total de gastos sin pagar <Badge bg="danger">${sumatoriaPendientes(expenses)}</Badge></span>
-                <span className="fs-5">Total de gastos del mes <Badge bg="success">${sumatoria(expenses)}</Badge></span>
+                <CreateExpense />
+                <CreateCategory />
+            </Container>
+            <Container className="mb-3">
+            <span className="mx-2 fs-5 ms-auto">Total de gastos sin pagar <Badge bg="danger">${sumatoriaPendientes(expenses)}</Badge></span>
+            <span className="fs-5">Total de gastos del mes <Badge bg="success">${sumatoria(expenses)}</Badge></span>
             </Container>
 
             <FilterExpenses
                 filterSelected={filterSelected}
                 onFilterChange={handleFilterChange}
+                categories={categories}
             />
         </Container>
         

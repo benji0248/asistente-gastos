@@ -1,21 +1,21 @@
 import React, { useState } from "react"
 import { Button, Form, Modal, ModalBody, ModalHeader, ModalTitle } from "react-bootstrap";
 import { actualDate } from "../../consts";
-import { Timestamp } from "firebase/firestore";
-import { Expense } from "../../types";
-import { updateExpense } from "../../lib/controller";
+import { Expense, listOfAccounts, listOfCategories } from "../../types";
 import { FaEdit } from "react-icons/fa";
 
 interface Props{
     expense: Expense
+    categories: listOfCategories
+    accounts: listOfAccounts
 }
 
-export const EditExpense: React.FC<Props> = ({ expense }) => {
+export const EditExpense: React.FC<Props> = ({ expense, categories, accounts }) => {
 
     const editCurrentExpense = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const newExpense = {id, title, amount, type, createdDate, paidDate, paidMethod, paid}
-        updateExpense(expense.id,newExpense)
+        /* updateExpense(expense.id,newExpense) */
     }
 
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,16 +29,16 @@ export const EditExpense: React.FC<Props> = ({ expense }) => {
         setShow(true);
         const date = actualDate();
         setPaidDate(date);
-        setCreatedDate(expense.createdDate)
+        setCreatedDate(expense.created_at)
     }
     const id = (expense.id);
     const [title, setTitle] = useState<string>(expense.title)
     const [amount, setAmount] = useState<number>(expense.amount)
-    const [type, setType] = useState<string>(expense.type)
-    const [createdDate, setCreatedDate] = useState<Timestamp>()
-    const [paidDate, setPaidDate] = useState<Timestamp>()
-    const [paidMethod, setPaidMethod] = useState<string>(expense.paidMethod)
-    const [paid, setPaid] = useState<boolean>(expense.paid)
+    const [type, setType] = useState<string>(expense.category_id)
+    const [createdDate, setCreatedDate] = useState<Date>()
+    const [paidDate, setPaidDate] = useState<Date>()
+    const [paidMethod, setPaidMethod] = useState<string>(expense.account_id)
+    const [paid, setPaid] = useState<boolean>(expense.is_paid)
 
     return (
         <>
@@ -72,12 +72,11 @@ export const EditExpense: React.FC<Props> = ({ expense }) => {
                         <Form.Label>Categoria</Form.Label>
                         <Form.Select aria-label="type-expense" className="mb-1" name='type' value={type} onChange={(e) => setType(e.target.value)} required>
                             <option>Elija la categoria del gasto</option>
-                            <option value="alquiler">Alquiler</option>
-                            <option value="servicios">Servicios</option>
-                            <option value="comida">Comida</option>
-                            <option value="super">Super</option>
-                            <option value="ropa">Ropa</option>
-                            <option value="gym">Gym</option>
+                            {categories.map(category => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
+                                    </option>
+                                ))}
                         </Form.Select>
                         <Form.Label>Pagado</Form.Label>
                         <br />
@@ -87,11 +86,11 @@ export const EditExpense: React.FC<Props> = ({ expense }) => {
                         <Form.Label>Metodo de Pago</Form.Label>
                         <Form.Select className="mt-1" aria-label="type-expense" name='bucket' value={paidMethod} onChange={(e) => setPaidMethod(e.target.value)} required>
                             <option>Elija el metodo de pago</option>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="banco">Transferencia</option>
-                            <option value="mercadoPago">Mercado Pago</option>
-                            <option value="debito">Tarjeta de Debito</option>
-                            <option value="credito">Tarjeta de Credito</option>
+                            {accounts.map(account => (
+                                    <option key={account.id} value={account.id}>
+                                        {account.description}
+                                    </option>
+                                ))}
                         </Form.Select>
                         </Form.Group>
                         <Modal.Footer>

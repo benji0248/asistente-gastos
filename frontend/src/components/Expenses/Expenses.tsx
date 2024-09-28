@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ExpenseTable } from './ExpenseTable';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { EXPENSE_FILTERS } from '../../consts'
-import { FilterValue, listOfExpenses } from '../../types';
+import { listOfAccounts, listOfCategories, listOfExpenses } from '../../types';
 import { ExpenseHeader } from './ExpenseHeader';
 import { useAxiosPrivate } from '../../hooks/useAxiosPrivate';
 import useAuth from '../../hooks/useAuth';
@@ -12,7 +11,9 @@ function Expenses() {
 
   const { auth } = useAuth()
   const [expenses, setExpenses] = useState<listOfExpenses>([]);
-  const [filterSelected, setFilterSelected] = useState<FilterValue>(EXPENSE_FILTERS.ALL)
+  const [filterSelected, setFilterSelected] = useState<string | undefined>("")
+  const [categories, setCategories] = useState<listOfCategories>([])
+  const [accounts, setAccounts] = useState<listOfAccounts>([])
   const axiosPrivate = useAxiosPrivate();
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,12 +27,9 @@ function Expenses() {
         const response = await axiosPrivate.get(`/${auth.id}/expenses`, {
           signal: controller.signal
         });
-        console.log(response.data)
         isMounted && setExpenses(response.data)
       } catch (err: any) {
-        console.log(err)
         if(err.code === 'ERR_CANCELED') {
-          console.log('aborted')
         } else {
           navigate('/login', { state: { from: location }, replace: true });
         }
@@ -42,44 +40,76 @@ function Expenses() {
       isMounted = false;
       controller.abort();
     }
+  }, [expenses])
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const getCategories = async () => {
+      try {
+        const response = await axiosPrivate.get(`/${auth.id}/categories`, {
+          signal: controller.signal
+        });
+        isMounted && setCategories(response.data)
+      } catch (err: any) {
+        if(err.code === 'ERR_CANCELED') {
+        } else {
+          navigate('/login', { state: { from: location }, replace: true });
+        }
+      }
+    }
+    getCategories();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    }
+  }, [categories])
+
+  useEffect(() => {
+    let isMounted = true
+    const controller = new AbortController();
+    const getAccounts = async () => {
+      try{
+        const response = await axiosPrivate.get(`/${auth.id}/accounts`, {
+          signal: controller.signal
+        })
+        isMounted && setAccounts(response.data)
+      }catch(err:any) {
+        if (err.code === 'ERR_CANCELED') {
+        
+        }
+      }
+    }
+    getAccounts();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    }
   }, [])
 
 
-  const handleFilterChange = (filter: FilterValue): void => {
-    setFilterSelected(filter)
+  const handleFilterChange = (categoryId: string | undefined): void => {
+    setFilterSelected(categoryId)
   }
 
-  const activeCount = expenses.filter(expense => expense.paid).length
+  const activeCount = expenses.filter(expense => expense.is_paid).length
   const completedCount = expenses.length - activeCount
 
-  const filteredAndSortExpenses = (): listOfExpenses => {
-    
-    let filteredExpenses = expenses.filter(expense => {
-    
-      if (filterSelected === EXPENSE_FILTERS.ALL) return true
-      /* if (filterSelected === EXPENSE_FILTERS.ALQUILER && filterSelected === expense.type) return true
-      if (filterSelected === EXPENSE_FILTERS.COMIDA && filterSelected === expense.type) return true
-      if (filterSelected === EXPENSE_FILTERS.SUPER && filterSelected === expense.type) return true
-      if (filterSelected === EXPENSE_FILTERS.PAID && expense.paid === true) return true
-      if (filterSelected === EXPENSE_FILTERS.UNPAID && expense.paid === false) return true
-      if (filterSelected === EXPENSE_FILTERS.ROPA && filterSelected === expense.type) return true
-      if (filterSelected === EXPENSE_FILTERS.SERVICIOS && filterSelected === expense.type) return true
-      if (filterSelected === EXPENSE_FILTERS.GYM && filterSelected === expense.type) return true */
-      return false;
-    });
+  const filteredExpenses = filterSelected
+    ? expenses.filter((expense) => expense.category_id === filterSelected)
+    : expenses;
 
-    filteredExpenses.sort((a, b) => {
-      if (a.paid !== b.paid) {
-        return a.paid ? 1 : -1;
+/*     filteredExpenses.sort((a, b) => {
+      if (a.is_paid !== b.is_paid) {
+        return a.is_paid ? 1 : -1;
       } 
-      const aDate = a.createdDate?.toDate().getTime() || 0;
-      const bDate = b.createdDate?.toDate().getTime() || 0;
+      const aDate = a.created_at?.toDate().getTime() || 0;
+      const bDate = b.created_at?.toDate().getTime() || 0;
       return bDate - aDate;
-    })
-    return filteredExpenses;
-  }
-  const filteredExpenses = filteredAndSortExpenses();
-
+      return filteredExpenses;
+    }) */
+    
 
   return (
     
@@ -91,9 +121,12 @@ function Expenses() {
         onClearCompleted={() => { }}
         handleFilterChange={handleFilterChange}
         expenses={filteredExpenses}
+        categories={categories}
       /> }
       <ExpenseTable
         expenses={filteredExpenses}
+        categories={categories}
+        accounts={accounts}
       />
      </>
     

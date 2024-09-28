@@ -44,9 +44,11 @@ export const Login = () => {
             const accessToken = response?.data?.accessToken;
             const role = response?.data?.role;
             const id = response?.data?.id
+            console.log('Este es el id', id)
             setAuth({ user, pwd, role, accessToken, id });
             setUser('')
             setPwd('')
+            console.log('Este es el id', id)
             const redirectionPath = from.replace(":userId", id);
             navigate(redirectionPath, { replace: true });
             

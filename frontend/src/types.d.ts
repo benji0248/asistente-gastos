@@ -1,24 +1,22 @@
-import { Timestamp } from 'firebase/firestore'
-import { type EXPENSE_FILTERS } from './consts'
-
 export interface Expense {
     id: string
+    user_id: string
     title: string
     amount: number
-    type: string
-    createdDate: Timestamp | undefined
-    paidDate: Timestamp | undefined
-    paidMethod: string
-    paid: boolean
+    category_id: string
+    created_at: Date | undefined
+    payment_date: string | undefined
+    is_paid: boolean
+    account_id: string
 }
 export interface newExpense {
+    user_id: string
     title: string
     amount: number
-    type: string
-    createdDate: Timestamp | undefined
-    paidDate: Timestamp | undefined
-    paidMethod: string
-    paid: boolean
+    payment_date: string | undefined
+    category_id: string
+    is_paid: boolean
+    account_id: string
 }
 
 export interface User {
@@ -67,5 +65,5 @@ export interface Account {
 }
 
 export type listOfExpenses = Expense[]
-
-export type FilterValue = typeof EXPENSE_FILTERS[keyof typeof EXPENSE_FILTERS]
+export type listOfCategories = Category[]
+export type listOfAccounts = Account[]

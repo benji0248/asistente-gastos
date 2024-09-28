@@ -4,7 +4,6 @@ import { Token, Users } from "../config/types";
 import { RowDataPacket } from "mysql2";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import dotenv from 'dotenv'
-import { handleTokenInsertion } from "../middlewares/tokenInsertion";
 
 dotenv.config();
 
@@ -19,7 +18,9 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     const refreshToken = cookies.jwt
     const accessSecret = process.env.ACCESS_TOKEN_SECRET;
     const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
-    if (!cookies?.jwt) return res.sendStatus(401);
+    if (!cookies?.jwt) {
+        return res.sendStatus(401);
+    }
     res.clearCookie('jwt', { httpOnly: true, sameSite:'none', secure: true });
     const [foundToken] = await db.query<RowDataPacket[]>(`SELECT * FROM tokens WHERE token = ?`, refreshToken)
     if (foundToken.length === 0) return res.status(403)
@@ -36,13 +37,13 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
             res.sendStatus(403);
         }
     }
-    await db.query(`DELETE FROM tokens WHERE id = ? `, typedFoundToken.id)
     const decoded = jwt.verify(refreshToken, refreshSecret) as JwtPayload
     if (!decoded) {
         console.log('El token expiro');
     }
     if (!decoded || typedFoundUser.username !== decoded.username) return res.sendStatus(403)
     const role = typedFoundUser.role
+    const id = typedFoundUser.id
     
     const accessToken = jwt.sign(
         {
@@ -52,14 +53,15 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
             }
         },
             accessSecret,
-            { expiresIn: '30s' }
+            { expiresIn: '180s' }
     );
     
-    const nweRefreshToken = jwt.sign(
+    const newRefreshToken = jwt.sign(
         { "username": typedFoundUser.username },
         refreshSecret,
         { expiresIn: '1d' }
     );
-    await db.query(`UPDATE tokens SET token = ? WHERE id = ?`, [nweRefreshToken, typedFoundToken.id])
-    res.json({role,accessToken})
-    }
+    await db.query(`UPDATE tokens SET token = ? WHERE id = ?`, [newRefreshToken, typedFoundToken.id])
+    res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
+    res.json({role,accessToken, id})
+}

@@ -29,9 +29,8 @@ class expenseControllers{
     static addExpense = async (req: Request, res: Response) => {
         try {
             const userId = req.params.userId
-            const categoryId = req.params.categoryId
             const newExpenseData: newExpenses = req.body
-            const newExpense = expenseServices.createOneExpense(userId,categoryId,newExpenseData);
+            const newExpense = expenseServices.createOneExpense(userId,newExpenseData);
             res.status(201).json(newExpense)
         } catch (err) {
             console.error('Error en el controlador addExpense', err)

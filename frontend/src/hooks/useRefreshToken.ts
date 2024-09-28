@@ -15,9 +15,12 @@ const useRefreshToken = () => {
             withCredentials: true
         });
         setAuth((prev: AuthState) => {
-            console.log(JSON.stringify(prev));
-            console.log(response.data.accessToken);
-            return { ...prev, accessToken: response.data.accessToken }
+            return {
+                ...prev,
+                role: response.data.role,
+                accessToken: response.data.accessToken,
+                id: response.data.id
+            }
         });
         return response.data.accessToken
     }

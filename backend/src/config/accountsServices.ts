@@ -24,9 +24,10 @@ class accountsServices{
 
     static addAccount = async (userId:string, dataAccout:newAccount) => {
         try{
-            await db.query (`
+            const result = await db.query (`
                 INSERT INTO accounts (user_id, type, balance, description, created_at)
-                VALUES (?,?,?,?,now())`,[userId, dataAccout.type, dataAccout.balance, dataAccout.description])
+                VALUES (?,?,?,?,now())`, [userId, dataAccout.type, dataAccout.balance, dataAccout.description])
+            console.log('Se logro crear la cuenta con exito', result);
         }catch(err){
             console.error('Error en el servicio addAccount', err)
         }

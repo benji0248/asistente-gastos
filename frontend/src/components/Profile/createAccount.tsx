@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import useAuth from "../../hooks/useAuth";
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate";
 import { Button, Form, FormControl, FormGroup, FormLabel, FormSelect, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap";
+import { response } from "express";
 
 function CreateAccount() {
 
@@ -14,13 +15,24 @@ function CreateAccount() {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-    const addNewAccount = (e: React.FormEvent<HTMLFormElement>) => {
+    const addNewAccount = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const newAccountData = {
             type: type,
             balance: balance,
             description: description
+        }
+        try {
+            const response = await axiosPrivate.post(`/${auth.id}/accounts`, JSON.stringify(newAccountData),
+            {
+                headers: { 'Content-Type': 'application/json' },
+                withCredentials: true
+            });
+            console.log(JSON.stringify(response.data));
+            console.log(JSON.stringify(response));
+        } catch (err) {
+            console.log('Error en el componente CreateAccount', err)
         }
     }
     
@@ -60,12 +72,13 @@ function CreateAccount() {
                                 required>
                             </FormControl>
                         </FormGroup>
+                        <ModalFooter>
+                            <Button variant="secondary" size="sm" onClick={handleClose}>Cerrar</Button>
+                            <Button variant="success" size="sm" type="submit" onClick={handleClose}>Agregar fuente de fondos</Button>
+                        </ModalFooter>
                     </Form>
                 </ModalBody>
-                <ModalFooter>
-                    <Button variant="secondary" size="sm" onClick={handleClose}>Cerrar</Button>
-                    <Button variant="success" size="sm" type="submit" onClick={handleClose}>Agregar fuente de fondos</Button>
-                </ModalFooter>
+                
 
             </Modal>
         </>

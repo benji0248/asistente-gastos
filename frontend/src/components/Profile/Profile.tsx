@@ -5,6 +5,7 @@ import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Account } from "../../types"
 import { useLocation, useNavigate } from "react-router-dom"
 import CreateAccount from "./createAccount"
+import CreateCategory from "../Expenses/CreateCategory"
 
 
 
@@ -44,7 +45,8 @@ function Profile() {
 
     return (
         <Container>
-            <CreateAccount></CreateAccount>
+            <CreateAccount/>
+            <CreateCategory/>
         </Container>
     )
 }
