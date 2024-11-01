@@ -1,3 +1,4 @@
+import { RowDataPacket } from 'mysql2'
 import accountsControllers from '../controllers/accountsControllers'
 import { db } from '../database/database'
 import { Account, newAccount } from './types'
@@ -13,10 +14,11 @@ class accountsServices{
         }
     }
 
-    static getOneAccount = async (accountId:string) => {
+    static getOneAccount = async (accountId:string): Promise<Account | undefined> => {
         try{
-            const [result] = await db.query(`SELECT FROM accounts WHERE id = ?`, [accountId])
-            return result
+            const [result] = await db.query<RowDataPacket[]>(`SELECT * FROM accounts WHERE id = ?`, [accountId])
+            if(result.length > 0)
+            return result[0] as Account
         }catch(err){
             console.error('Error en el servicio getOneAccount', err)
         }
@@ -49,19 +51,80 @@ class accountsServices{
         try{
             await db.query(
                 `UPDATE accounts SET type = ?, balance = ?, description = ? WHERE id = ?`,
-                [dataAccount.balance,dataAccount.balance,dataAccount.description,accountId]);
+                [dataAccount.type,dataAccount.balance,dataAccount.description,accountId]);
 
         }catch(err){
             console.error('Error en el servicio updateAccount', err)
         }
     }
 
-    static updateBalance = async (accountId:string, balance:number) => {
+    static editFounds = async (accountId: string, newBalance: Number) => {
+        const account = await this.getOneAccount(accountId)
         try{
-            await db.query(
-                `UPDATE accounts SET balance = ? WHERE id = ?`, [balance, accountId])
+            if (account) {
+                await db.query(
+                    `UPDATE accounts SET balance = ? WHERE id = ?`,
+                    [newBalance,accountId]);
+            } else {
+                throw new Error ('No se consiguio la fuente de fondos')
+            }
+
+        }catch(err){
+            console.error('Error en el servicio updateAccount', err)
+        }
+    }
+
+    static updateBalance = async (accountId: string, expenseAmount: number) => {
+        
+        const account = await this.getOneAccount(accountId)
+        try {
+            if (account) {
+                const balance = Number(account.balance) - Number(expenseAmount)
+                await db.query(
+                    `UPDATE accounts SET balance = ? WHERE id = ?`, [balance, accountId])
+            } else {
+                throw new Error ('No se consiguio la fuente de fondos')
+            }
         }catch(err){
             console.error('Error en el servicio updateBalance', err)
+        }
+    }
+
+    static addFounds = async (accountId: string, foundsToAdd: number) => {
+        
+        const account = await this.getOneAccount(accountId)
+        try {
+            if (account) {
+                const balance = Number(account.balance) + Number(foundsToAdd)
+                console.log(balance)
+                await db.query(
+                    `UPDATE accounts SET balance = ? WHERE id = ?`, [balance, accountId])
+            } else {
+                throw new Error ('No se consiguio la fuente de fondos')
+            }
+        }catch(err){
+            console.error('Error en el servicio addFounds', err)
+        }
+    }
+
+    static transferFounds = async (accountId: string, accountToTransferId: string, moneyToTransfer: number) => {
+        
+        const account = await this.getOneAccount(accountId)
+        const accountToTransfer = await this.getOneAccount(accountToTransferId)
+        try {
+            if (account && accountToTransfer
+            ) {
+                const originAccountBalance = Number(account.balance) - Number(moneyToTransfer)
+                const destinyAccountBalance = Number(accountToTransfer.balance) + Number(moneyToTransfer)
+                await db.query(
+                    `UPDATE accounts SET balance = ? WHERE id = ?`, [originAccountBalance, accountId])
+                await db.query(
+                    `UPDATE accounts SET balance = ? WHERE id = ?`, [destinyAccountBalance, accountToTransferId])
+            } else {
+                throw new Error ('No se consiguio la fuente de fondos')
+            }
+        }catch(err){
+            console.error('Error en el servicio addFounds', err)
         }
     }
 

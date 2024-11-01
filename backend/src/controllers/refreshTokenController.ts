@@ -44,6 +44,7 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     if (!decoded || typedFoundUser.username !== decoded.username) return res.sendStatus(403)
     const role = typedFoundUser.role
     const id = typedFoundUser.id
+    const user = typedFoundUser.username
     
     const accessToken = jwt.sign(
         {
@@ -63,5 +64,5 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     );
     await db.query(`UPDATE tokens SET token = ? WHERE id = ?`, [newRefreshToken, typedFoundToken.id])
     res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
-    res.json({role,accessToken, id})
+    res.json({user,role,accessToken, id})
 }

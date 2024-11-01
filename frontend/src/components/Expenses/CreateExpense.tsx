@@ -16,7 +16,7 @@ export const CreateExpense = () => {
     const [paidMethod, setPaidMethod] = useState<string>("")
     const [paid, setPaid] = useState<boolean>(false)
     const [show, setShow] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([])
+    const [category, setCategories] = useState<Category[]>([])
     const [accounts, setAccounts] = useState<Account[]>([])
     const axiosPrivate = useAxiosPrivate();
     const handleClose = () => setShow(false);
@@ -24,14 +24,13 @@ export const CreateExpense = () => {
         setShow(true)
         const date = actualDate();
         setCreatedDate(date);
-        setPaidDate(date);
     };
 
     useEffect(() => {
         axiosPrivate.get(`/${auth.id}/categories`).then(response => { setCategories(response.data) })
-        .catch(error =>{console.error('Error fetching cateogires:', error)})
+        .catch(error =>{console.error('Error fetching categories:', error)})
         axiosPrivate.get(`/${auth.id}/accounts`).then(response => { setAccounts(response.data) })
-        .catch(error =>{console.error('Error fetching cateogires:', error)})
+        .catch(error =>{console.error('Error fetching accounts:', error)})
     },[])
 
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +74,7 @@ export const CreateExpense = () => {
 
     return (
         <>
-        <Button variant="outline-dark" onClick={handleShow} size="sm" className="ms-2">Agregar Gasto</Button>
+        <Button variant="outline-dark" onClick={handleShow} className="ms-2">Agregar Gasto</Button>
         <Modal show={show} onHide={handleClose} size="sm">
             <ModalHeader closeButton>
                 <ModalTitle>Agrega un nuevo gasto</ModalTitle>
@@ -107,7 +106,7 @@ export const CreateExpense = () => {
                         <Form.Label>Categoria</Form.Label>
                         <Form.Select aria-label="type-expense" className="mb-1" name='type' value={type} onChange={(e) => setType(e.target.value)} required>
                             <option>Elija la categoria del gasto</option>
-                                {categories.map(category => (
+                                {category.map(category => (
                                     <option key={category.id} value={category.id}>
                                         {category.name}
                                     </option>
@@ -129,7 +128,7 @@ export const CreateExpense = () => {
                         </Form.Select>
                         </Form.Group>
                         <Modal.Footer>
-                            <Button variant='secondary' size='sm' onClick={handleClose}>Cerrar</Button>
+                            <Button variant='outline-secondary' size='sm' onClick={handleClose}>Cerrar</Button>
                             <Button variant='success' size='sm' type='submit' onClick={handleClose}>Agregar Gasto</Button>
                         </Modal.Footer>
                         </Form>

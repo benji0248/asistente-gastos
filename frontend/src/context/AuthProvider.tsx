@@ -1,6 +1,7 @@
 import { createContext, useState, ReactNode, Dispatch, SetStateAction } from "react";
 
 type AuthData = {
+    user: string;
     token: string;
     userId: string;
 }

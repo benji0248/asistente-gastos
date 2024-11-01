@@ -32,6 +32,7 @@ export const handleLogin = async (req: Request, res: Response) => {
             if (!accessSecret || !refreshSecret) throw new Error('El token no esta definido.')
             const role = typeFoundUser.role
             const id = typeFoundUser.id
+            const username = typeFoundUser.username
             const accessToken = jwt.sign(
                 {
                 "UserInfo": {
@@ -56,7 +57,7 @@ export const handleLogin = async (req: Request, res: Response) => {
 
             await handleTokenInsertion(newRefreshToken, typeFoundUser.id)
             res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
-            res.json({role, accessToken, id})
+            res.json({role, accessToken, id, username})
             }
         } catch (err) {
             res.status(400)

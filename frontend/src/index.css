@@ -134,3 +134,68 @@ display: flex;
     align-items: center;
     width: 60px;
 }
+
+.profileContainer{
+    border: solid 1px rgb(0, 0, 0,0.2); 
+    border-radius: 10px;
+}
+
+.totalBalance{
+    font-size: x-large;
+    font-weight: 700;
+}
+
+.fontSizeAccount{
+    font-weight: 400;
+}
+
+.accordion-button:not(.collapsed){
+    background-color: transparent;
+    color:inherit;
+    box-shadow: none;
+}
+
+.balanceAccount {
+    position: relative;
+    margin-left: auto;
+}
+
+.borderNavbar{
+    border-bottom: solid 1px rgb(0, 0, 0, 0.2)
+}
+
+.textColorGreen {
+    color: forestgreen;
+}
+
+.textColorRed{
+    color: red;
+}
+
+.customTabs .nav-link {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 20px;
+    color: #333;
+    padding: 7px 15px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .customTabs{
+    border-bottom: none;
+  }
+  
+  .customTabs .nav-link.active {
+    background-color: black;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+  }
+
+  .customTabs .nav-link:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: black;
+  }
+  .customTabs .nav-item {
+    margin-right: 10px;
+  }

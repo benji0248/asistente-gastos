@@ -1,8 +1,10 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Button, Form, Modal, ModalBody, ModalHeader, ModalTitle } from "react-bootstrap";
 import { actualDate } from "../../consts";
-import { Expense, listOfAccounts, listOfCategories } from "../../types";
+import { Account, Category, Expense, listOfAccounts, listOfCategories } from "../../types";
 import { FaEdit } from "react-icons/fa";
+import useAuth from "../../hooks/useAuth";
+import { axiosPrivate } from "../../api/axios";
 
 interface Props{
     expense: Expense
@@ -12,16 +14,16 @@ interface Props{
 
 export const EditExpense: React.FC<Props> = ({ expense, categories, accounts }) => {
 
-    const editCurrentExpense = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const newExpense = {id, title, amount, type, createdDate, paidDate, paidMethod, paid}
-        /* updateExpense(expense.id,newExpense) */
-    }
-
-    const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value === 'true';
-        setPaid(value);
-    }
+    const { auth } = useAuth();
+    const id = expense.id;
+    const prevPaidMethod = expense.account_id
+    const [title, setTitle] = useState<string>(expense.title)
+    const [amount, setAmount] = useState<number>(expense.amount)
+    const [type, setType] = useState<string>(expense.category_id)
+    const [createdDate, setCreatedDate] = useState<Date>()
+    const [paidDate, setPaidDate] = useState<Date>()
+    const [paidMethod, setPaidMethod] = useState<string>(expense.account_id)
+    const [paid, setPaid] = useState<boolean>(expense.is_paid)
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
@@ -31,14 +33,39 @@ export const EditExpense: React.FC<Props> = ({ expense, categories, accounts }) 
         setPaidDate(date);
         setCreatedDate(expense.created_at)
     }
-    const id = (expense.id);
-    const [title, setTitle] = useState<string>(expense.title)
-    const [amount, setAmount] = useState<number>(expense.amount)
-    const [type, setType] = useState<string>(expense.category_id)
-    const [createdDate, setCreatedDate] = useState<Date>()
-    const [paidDate, setPaidDate] = useState<Date>()
-    const [paidMethod, setPaidMethod] = useState<string>(expense.account_id)
-    const [paid, setPaid] = useState<boolean>(expense.is_paid)
+
+    const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value === 'true';
+        setPaid(value);
+    }
+
+    const editCurrentExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const editedExpense = {
+            id: id,
+            title: title,
+            amount: amount,
+            payment_date: paidDate,
+            is_paid: paid,
+            user_id: auth.id,
+            category_id: type,
+            account_id: paidMethod
+        }
+        console.log(editedExpense)
+        try {
+            const response = await axiosPrivate.put(`/${auth.id}/expenses/${id}`, JSON.stringify(editedExpense),
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    withCredentials: true
+                });
+            console.log(JSON.stringify(response.data));
+            console.log(JSON.stringify(response))
+        } catch (err) {
+            console.log('Error en el componente EditExpenses', err)
+        }
+    }
+
+
 
     return (
         <>

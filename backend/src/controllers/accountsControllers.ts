@@ -46,11 +46,45 @@ class accountsControllers{
     static updateBalanceAccount = async(req:Request, res:Response) => {
         try{
             const accountId = req.params.accountId
-            const {balance} = req.body.balance
-            await accountsServices.updateBalance(accountId, balance)
+            const expenseAmount = req.body.balance
+            await accountsServices.updateBalance(accountId, expenseAmount)
             res.status(200);
         }catch(err){
-            console.error('ERror en el controlador updateBalanceAccount', err);
+            console.error('Error en el controlador updateBalanceAccount', err);
+        }
+    }
+
+    static addMoneyFounds = async (req: Request, res: Response) => {
+        try {
+            const accountId = req.params.accountId
+            const moneyToAdd = req.body.amount
+            await accountsServices.addFounds(accountId, moneyToAdd)
+            res.status(200);
+        } catch (err) {
+            console.error('Error en el controlador addMoneyFounds', err)
+        }
+    }
+
+    static transferMoneyFounds = async (req: Request, res: Response) => {
+        try {
+            const accountId = req.params.accountId
+            const accountToTransfer = req.body.accountToTransfer
+            const moneyToTransfer = req.body.amount
+            await accountsServices.transferFounds(accountId, accountToTransfer, moneyToTransfer)
+            res.status(200);
+        } catch (err) {
+            console.error('Error en el controlador addMoneyFounds', err)
+        }
+    }
+
+    static editMoneyFounds = async (req: Request, res: Response) => {
+        try {
+            const accountId = req.params.accountId
+            const newBalance = req.body.amount
+            await accountsServices.editFounds(accountId, newBalance)
+            res.status(200);
+        } catch (err) {
+            console.error('Error en el controlador addMoneyFounds', err)
         }
     }
 

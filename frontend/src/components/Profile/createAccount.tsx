@@ -38,7 +38,7 @@ function CreateAccount() {
     
     return (
         <>
-            <Button variant="warning" size="sm" onClick={handleShow}>Agrega una fuente de fondos</Button>
+            <Button variant="outline-dark" className="mt-3" onClick={handleShow}>+ Agrega una fuente de fondos</Button>
             <Modal show={show} onHide={handleClose} size="sm">
                 <ModalHeader closeButton>
                     <ModalTitle>Agregar fuente de fondos </ModalTitle>
@@ -50,7 +50,7 @@ function CreateAccount() {
                             <FormSelect className="mt-1" aria-label="type-account" name="type" value={type} onChange={(e) => setType(e.target.value)} required>
                                 <option>Elija una fuente de fondos</option>
                                 <option value="bank_account">Cuenta Bancaria</option>
-                                <option value="virtual_walltet">Billetera Virtual</option>
+                                <option value="virtual_wallet">Billetera Virtual</option>
                             </FormSelect>
                             <FormLabel className="mt-2">Cuenta</FormLabel>
                             <FormControl

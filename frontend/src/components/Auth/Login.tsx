@@ -48,7 +48,6 @@ export const Login = () => {
             setAuth({ user, pwd, role, accessToken, id });
             setUser('')
             setPwd('')
-            console.log('Este es el id', id)
             const redirectionPath = from.replace(":userId", id);
             navigate(redirectionPath, { replace: true });
             

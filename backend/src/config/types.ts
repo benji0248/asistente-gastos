@@ -24,11 +24,15 @@ export interface newExpenses{
 }
 
 export interface Expenses{
+    id: string
     title: string,
     amount: number,
-    created_at: Date,
     payment_date: Date,
-    is_paid: boolean
+    created_at: Date,
+    is_paid: boolean,
+    user_id: string,
+    category_id: string,
+    account_id:string
 }
 
 export interface newCategory{

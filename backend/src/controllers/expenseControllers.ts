@@ -4,6 +4,29 @@ import { Expenses, newExpenses } from "../config/types";
 
 class expenseControllers{
 
+    static availableMonthInExpenses = async (req: Request, res: Response) => {
+        try {
+            const result = await expenseServices.getAvailableMonths()
+            res.status(200).json(result);
+        } catch (err) {
+            console.error('Error en el metodo availableMonthInExpenses', err)
+        }
+    }
+
+    static getExpensesByDate = async (req: Request, res: Response) => {
+        const month = req.params.month
+        const year = req.params.year
+        console.log(month)
+        console.log(year)
+        try {
+            const expenses = await expenseServices.getExpensesByMonth(month, year)
+            if (expenses)
+            res.status(200).json(expenses)
+        } catch (err) {
+            console.log('Error en el controlador getExpensesByDate', err)
+        }
+    }
+
     static getExpenses = async (req: Request, res: Response) => {
         try {
             const userId = req.params.userId
@@ -55,6 +78,16 @@ class expenseControllers{
             res.status(200)
         }catch(err){
             console.error('Error en el controlador deleteExpense', err)
+        }
+    }
+
+    static completePaidExpense = async (req: Request, res: Response) => {
+        const expenseId = req.params.expenseId
+        try {
+            expenseServices.completePaid(expenseId)
+            res.status(200)
+        } catch (err) {
+            console.error('Error en el controlador completePaidExpense', err)
         }
     }
 }

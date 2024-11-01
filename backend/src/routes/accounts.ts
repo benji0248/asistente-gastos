@@ -10,6 +10,9 @@ accountsRoutes.get('/:accountId', verifyRoles(ROLES_LIST.admin, ROLES_LIST.edito
 accountsRoutes.post('/', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.createAccount)
 accountsRoutes.put('/:accountId', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.updateOneAccount)
 accountsRoutes.put('/:accountId', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.updateBalanceAccount)
+accountsRoutes.put('/:accountId/add', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.addMoneyFounds)
+accountsRoutes.put('/:accountId/edit', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.editMoneyFounds)
+accountsRoutes.put('/:accountId/transfer', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.transferMoneyFounds)
 accountsRoutes.delete('/:accountId', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), accountsControllers.deleteOneAccount)
 
 export default accountsRoutes

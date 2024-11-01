@@ -1,4 +1,4 @@
-import { Expense, listOfExpenses } from "./types";
+import { Expense, listOfAccounts, listOfExpenses } from "./types";
 
 
 export const ROLES = {
@@ -44,10 +44,14 @@ export function sumatoriaPendientes(expenses:listOfExpenses) {
     }, 0)
     return suma
 }
-/* 
 
-export const handleComplete = (expense: Expense) => {
-    expense.is_paid = Boolean(1);
-    expense.paytment_date = actualDate();
-    updateExpense(expense.id, expense)
-  } */
+export function balanceTotal(accounts: listOfAccounts) {
+    const suma = accounts.reduce((total: number, account) => {
+        if (account.hasOwnProperty('balance')){
+            return total + Number(account.balance)
+        } else {
+            return total
+        }
+    }, 0)
+    return suma
+}

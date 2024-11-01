@@ -14,8 +14,6 @@ function CreateCategory() {
 
     const addNewCategory = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        console.log(auth)
-
         try {
             const response = await axiosPrivate.post(`/${auth.id}/categories`, JSON.stringify({name}),
                 {
@@ -34,7 +32,7 @@ function CreateCategory() {
 
     return (
         <>
-            <Button variant="outline-dark" size="sm" className="mx-2" onClick={handleShow}>Crea una categoria</Button>
+            <Button variant="outline-dark" className="mx-2" onClick={handleShow}>Crea una categoria</Button>
             <Modal show={show} onHide={handleClose} size="sm">
                 <ModalHeader closeButton>
                     <ModalTitle>Agrega una categoria de gasto</ModalTitle>
