@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "build": "esbuild src/app.ts --bundle --platform=node --target=node20 --outfile=dist/app.js --packages=external --format=cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -32,6 +33,7 @@
     "@types/pg": "^8.11.10",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "esbuild": "^0.25.0"
   }
 }
