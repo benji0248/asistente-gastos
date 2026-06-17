@@ -1,19 +1,21 @@
-import useAuth from "../../hooks/useAuth";
-import { HomeLogged } from "./HomeLogged";
-import HomeNoLog from "./HomeNoLog";
-
-
+import useAuth from "../../hooks/useAuth"
+import { AppShell } from "../layout/AppShell"
+import { HomeLogged } from "./HomeLogged"
+import HomeNoLog from "./HomeNoLog"
 
 const Home = () => {
-    const { auth } = useAuth();
-    return (
-        <>  {auth 
-                ? <HomeLogged/>
-                : <HomeNoLog/>
-            }
-            
-        </>
-    )
+  const { auth } = useAuth()
+  return (
+    <>
+      {auth ? (
+        <AppShell>
+          <HomeLogged />
+        </AppShell>
+      ) : (
+        <HomeNoLog />
+      )}
+    </>
+  )
 }
 
-export default Home;
+export default Home

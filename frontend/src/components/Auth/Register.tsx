@@ -1,217 +1,278 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Container, Row } from "react-bootstrap";
-import { FaInfoCircle, FaCheck, FaTimes } from "react-icons/fa";
-import axios from "../../api/axios";
-import { AxiosError } from "axios";
-    
-const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/;
-const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/;
-const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-const REGISTER_URL = '/register';
+import { useEffect, useRef, useState, type FormEvent } from "react"
+import { Link } from "react-router-dom"
+import { AlertCircle, Check, CheckCircle2, X } from "lucide-react"
+import axios from "@/api/axios"
+import { AxiosError } from "axios"
+import { AuthLayout } from "@/components/layout/AuthLayout"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/
+const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/
+const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
+const REGISTER_URL = "/register"
+
+function FieldStatus({
+  valid,
+  showInvalid,
+}: {
+  valid: boolean
+  showInvalid: boolean
+}) {
+  if (valid) {
+    return <Check className="h-4 w-4 text-emerald-500" />
+  }
+  if (showInvalid) {
+    return <X className="h-4 w-4 text-destructive" />
+  }
+  return null
+}
 
 export const Register = () => {
+  const userRef = useRef<HTMLInputElement>(null)
+  const errRef = useRef<HTMLParagraphElement>(null)
 
-    const userRef = useRef<HTMLInputElement>(null);
-    const errRef = useRef<HTMLParagraphElement>(null);
+  const [user, setUser] = useState<string>("")
+  const [validName, setValidName] = useState<boolean>(false)
 
-    const [user, setUser] = useState<string>('');
-    const [validName, setValidName] = useState<boolean>(false);
-    const [userFocus, setUserFocus] = useState<boolean>(false);
+  const [email, setEmail] = useState<string>("")
+  const [validEmail, setValidEmail] = useState<boolean>(false)
 
-    const [email, setEmail] = useState<string>('');
-    const [validEmail, setValidEmail] = useState<boolean>(false);
-    const [emailFocus, setEmailFocus] = useState<boolean>(false);
+  const [pwd, setPwd] = useState<string>("")
+  const [validPwd, setValidPwd] = useState<boolean>(false)
 
-    const [pwd, setPwd] = useState<string>('');
-    const [validPwd, setValidPwd] = useState<boolean>(false);
-    const [pwdFocus, setPwdFocus] = useState<boolean>(false);
+  const [matchPwd, setMatchPwd] = useState<string>("")
+  const [validMatch, setValidMatch] = useState<boolean>(false)
 
-    const [matchPwd, setMatchPwd] = useState<string>('');
-    const [validMatch, setValidMatch] = useState<boolean>(false);
-    const [matchFocus, setMatchFocus] = useState<boolean>(false);
+  const [errMsg, setErrMsg] = useState<string>("")
+  const [success, setSuccess] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-    const [errMsg, setErrMsg] = useState<string>('');
-    const [success, setSuccess] = useState<boolean>(false);
+  useEffect(() => {
+    userRef.current?.focus()
+  }, [])
 
-    useEffect(() => {
-        userRef.current?.focus();
-    }, [])
+  useEffect(() => {
+    setValidName(USER_REGEX.test(user))
+  }, [user])
 
-    useEffect(() => {
-        const result = USER_REGEX.test(user);
-        setValidName(result);
-    }, [user])
+  useEffect(() => {
+    setValidEmail(EMAIL_REGEX.test(email))
+  }, [email])
 
-    useEffect(() => {
-        const result = EMAIL_REGEX.test(email);
-        setValidEmail(result)
-    }, [email])
+  useEffect(() => {
+    setValidPwd(PWD_REGEX.test(pwd))
+    setValidMatch(pwd === matchPwd)
+  }, [pwd, matchPwd])
 
-    useEffect(() => {
-        const result = PWD_REGEX.test(pwd);
-        setValidPwd(result);
-        const match = pwd === matchPwd;
-        setValidMatch(match);
-    }, [pwd, matchPwd])
+  useEffect(() => {
+    setErrMsg("")
+  }, [user, pwd, matchPwd, email])
 
-    useEffect(() => {
-        setErrMsg('');  
-    }, [user, pwd, matchPwd])
-
-    const handleSubmit = async (e: React.ChangeEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const v1 = USER_REGEX.test(user);
-        const v2 = PWD_REGEX.test(pwd);
-        const v3 = EMAIL_REGEX.test(email)
-        if (!v1 || !v2 || !v3) {
-            setErrMsg('Uno de los campos es invalido')
-            return;
-        }
-        try {
-            const response = await axios.post(REGISTER_URL, JSON.stringify({ user, pwd, email }),
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                    withCredentials: true
-                });
-                
-            console.log(JSON.stringify(response.data));
-            console.log(JSON.stringify(response))
-            setSuccess(true)
-        } catch (err) {
-            let errorMessage = 'Error al registrarse. Por favor, intente de nuevo.';
-            console.log('Este es el error que se esta pasando',err)
-
-            if (err instanceof AxiosError) {
-                if (err.response) {
-
-                    errorMessage = err.response.data.message || 'Error en la solicitud';
-                } else if (err.request) {
-
-                    errorMessage = 'No se recibió respuesta del servidor';
-                } else {
-
-                    errorMessage = err.message;
-                }
-            }
-            console.log(err)
-            setErrMsg(errorMessage)
-        }
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const v1 = USER_REGEX.test(user)
+    const v2 = PWD_REGEX.test(pwd)
+    const v3 = EMAIL_REGEX.test(email)
+    if (!v1 || !v2 || !v3) {
+      setErrMsg("Uno de los campos es inválido")
+      return
     }
+    setIsLoading(true)
 
+    try {
+      await axios.post(
+        REGISTER_URL,
+        JSON.stringify({ username: user, pwd, email }),
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
+      )
+      setSuccess(true)
+    } catch (err) {
+      let errorMessage =
+        "Error al registrarse. Por favor, intente de nuevo."
+
+      if (err instanceof AxiosError) {
+        if (err.response) {
+          errorMessage = err.response.data.message || "Error en la solicitud"
+        } else if (err.request) {
+          errorMessage = "No se recibió respuesta del servidor"
+        } else {
+          errorMessage = err.message
+        }
+      }
+      setErrMsg(errorMessage)
+      errRef.current?.focus()
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (success) {
     return (
-        <Container>
-            {success ? (
-                <Container className="classContainer verticalCenter">
-                    <h1>Registro Exitoso!</h1>
-                    <p>
-                        <a href="#" className="line">Inicia Sesion</a>
-                    </p>
-                </Container>
-            ) : (
-                <Container className="classContainer">
-                    <p ref={errRef} className={errMsg ? 'errmsg' : 'offscreen'} aria-live="assertive">{errMsg}</p>
-                    <h1>Registrarse</h1>
-                    <form onSubmit={handleSubmit}>
-                            <Row className="justify-content-center">
-                                <label htmlFor="username">
-                                    Username:
-                                    <span className={validName ? "valid" : "hide"}><FaCheck /></span>
-                                    <span className={validName || !user ? "hide" : "invalid"}><FaTimes /></span>
-                                </label>
-                            </Row>
-                        <input
-                            type="text"
-                            id="username"
-                            autoComplete="off"
-                            onChange={(e) => setUser(e.target.value)}
-                            required
-                            aria-invalid={validName ? "false" : "true"}
-                            aria-describedby="uidnote"
-                            onFocus={() => setUserFocus(true)}
-                            onBlur={() => setUserFocus(false)}
-                        ></input>
-                        <p id="uidnote" className={userFocus && user && !validName ? "instructions" : "offscreen"}>
-                            <FaInfoCircle /> Deben ser de 4 a 24 caracteres.<br />
-                            Debe comenzar con una letra.<br />
-                            Las letras, los numeros y unicamente el simbolo '_' estan permitidos.
-                        </p>
-                            <Row className="justify-content-center">
-                                <label htmlFor="email">
-                                    Email:
-                                    <span className={validEmail ? "valid" : "hide"}><FaCheck /></span>
-                                    <span className={validEmail || !email ? "hide" : "invalid"}><FaTimes /></span>
-                                </label>
-                            </Row>
-                        <input
-                            type="email"
-                            id="email"
-                            autoComplete="off"
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            aria-invalid={validEmail? "false" : "true"}
-                            aria-describedby="uidnote"
-                            onFocus={() => setEmailFocus(true)}
-                            onBlur={() => setEmailFocus(false)}
-                        ></input>
-                        <p id="uidnote" className={emailFocus && email && !validEmail ? "instructions" : "offscreen"}>
-                            <FaInfoCircle /> El email ingresado no es valido.
-                        </p>
-
-                        <label htmlFor="password">
-                            Clave:
-                            <span className={validPwd ? 'valid' : 'hide'}>
-                                <FaCheck />
-                            </span>
-                            <span className={validPwd || !pwd ? 'hide' : 'invalid'}>
-                                <FaTimes />
-                            </span>
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            onChange={(e) => setPwd(e.target.value)}
-                            required
-                            aria-invalid={validPwd ? 'false' : 'true'}
-                            aria-describedby="pwdnote"
-                            onFocus={() => setPwdFocus(true)}
-                            onBlur={() => setPwdFocus(false)}
-                        >
-                        </input>
-                        <p id="pwdnote" className={pwdFocus && !validPwd ? 'instructions' : 'offscreen'}>
-                            <FaInfoCircle />
-                            Tiene que tener de 8 a 24 caracteres.<br />
-                            Tiene que incluir una letra mayuscula y un numero.<br />
-                        </p>
-
-                        <label htmlFor="confirm_pwd">
-                            Confirmacion de clave:
-                            <span className={validMatch && matchPwd ? 'valid' : 'hide'}> <FaCheck /></span>
-                            <span className={validMatch || !matchPwd ? 'hide' : 'invalid'}><FaTimes /></span>
-                        </label>
-                        <input
-                            type="password"
-                            id="confirm_pwd"
-                            onChange={(e) => setMatchPwd(e.target.value)}
-                            required
-                            aria-invalid={validMatch ? 'false' : 'true'}
-                            aria-describedby="confirmnote"
-                            onFocus={() => setMatchFocus(true)}
-                            onBlur={() => setMatchFocus(false)}
-                        >
-                        </input>
-                        <p id="confirmnote" className={matchFocus && !validMatch ? 'instructions' : 'offscreen'}>
-                            <FaInfoCircle />
-                            Las claves no coinciden.
-                        </p>
-                        <button className="rButton" disabled={!validName || !validPwd || !validMatch ? true : false}>Registrarse</button>
-                    </form>
-                    <p>
-                        ¿Ya estas registrado?<br />
-                            <a href="/login" className="line">Inicia Sesion</a>
-
-                    </p>
-                </Container>
-            )}
-        </Container>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50 px-4">
+        <Card className="w-full max-w-md text-center shadow-lg">
+          <CardHeader className="pb-4">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">¡Registro exitoso!</CardTitle>
+            <CardDescription className="text-base">
+              Tu cuenta ha sido creada. Ya puedes iniciar sesión.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link to="/login">Iniciar sesión</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     )
+  }
+
+  return (
+    <AuthLayout
+      title="Crear cuenta"
+      subtitle="Completa el formulario para registrarte gratis"
+    >
+      {errMsg && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription ref={errRef} aria-live="assertive">
+            {errMsg}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="username">Usuario</Label>
+            <FieldStatus valid={validName} showInvalid={!!user && !validName} />
+          </div>
+          <Input
+            type="text"
+            id="username"
+            ref={userRef}
+            autoComplete="off"
+            onChange={(e) => setUser(e.target.value)}
+            value={user}
+            required
+            aria-invalid={validName ? "false" : "true"}
+            placeholder="ejemplo_usuario"
+          />
+          {user && !validName && (
+            <p className="text-xs text-muted-foreground">
+              4–24 caracteres, empieza con letra. Solo letras, números, _ y -.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="email">Email</Label>
+            <FieldStatus
+              valid={validEmail}
+              showInvalid={!!email && !validEmail}
+            />
+          </div>
+          <Input
+            type="email"
+            id="email"
+            autoComplete="email"
+            onChange={(e) => setEmail(e.target.value)}
+            value={email}
+            required
+            aria-invalid={validEmail ? "false" : "true"}
+            placeholder="tu@email.com"
+          />
+          {email && !validEmail && (
+            <p className="text-xs text-muted-foreground">
+              Ingresa un email válido.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Contraseña</Label>
+            <FieldStatus valid={validPwd} showInvalid={!!pwd && !validPwd} />
+          </div>
+          <Input
+            type="password"
+            id="password"
+            autoComplete="new-password"
+            onChange={(e) => setPwd(e.target.value)}
+            value={pwd}
+            required
+            aria-invalid={validPwd ? "false" : "true"}
+            placeholder="••••••••"
+          />
+          {pwd && !validPwd && (
+            <p className="text-xs text-muted-foreground">
+              8–24 caracteres, al menos una mayúscula y un número.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="confirm_pwd">Confirmar contraseña</Label>
+            <FieldStatus
+              valid={validMatch && !!matchPwd}
+              showInvalid={!!matchPwd && !validMatch}
+            />
+          </div>
+          <Input
+            type="password"
+            id="confirm_pwd"
+            autoComplete="new-password"
+            onChange={(e) => setMatchPwd(e.target.value)}
+            value={matchPwd}
+            required
+            aria-invalid={validMatch ? "false" : "true"}
+            placeholder="••••••••"
+          />
+          {matchPwd && !validMatch && (
+            <p className="text-xs text-destructive">Las contraseñas no coinciden.</p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={
+            !validName || !validPwd || !validMatch || !validEmail || isLoading
+          }
+        >
+          {isLoading ? "Registrando..." : "Registrarse"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        ¿Ya tienes cuenta?{" "}
+        <Link
+          to="/login"
+          className={cn(
+            "font-medium text-primary hover:underline underline-offset-4"
+          )}
+        >
+          Inicia sesión
+        </Link>
+      </p>
+    </AuthLayout>
+  )
 }

@@ -1,27 +1,31 @@
-import { Col, Row, Tab, Tabs } from "react-bootstrap";
-import { Category } from "../../types";
+import { Category } from "../../types"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Props {
-    onFilterChange: (category_id: string | undefined) => void
-    filterSelected: string | undefined
-    categories: Category[]
+  onFilterChange: (category_id: string | undefined) => void
+  filterSelected: string | undefined
+  categories: Category[]
 }
 
-export const FilterExpenses: React.FC<Props> = ({ filterSelected, onFilterChange, categories }) => {
-    return (
-        <Row>
-            <Col className="customTabCol mb-4">
-                <Tabs className="mt-4 customTabs" justify  defaultActiveKey="all" activeKey={filterSelected || "all"} onSelect={(key) => onFilterChange(key as any)} >
-                    <Tab eventKey={"all"} key={"all"} title="Todos"></Tab>
-                    {categories.map((category) => (
-                        <Tab
-                            eventKey={category.id}
-                            key={category.id}
-                            title={category.name}
-                        ></Tab>
-                    ))}
-                </Tabs>
-            </Col>
-        </Row>
-    )
+export const FilterExpenses = ({
+  filterSelected,
+  onFilterChange,
+  categories,
+}: Props) => {
+  return (
+    <Tabs
+      value={filterSelected || "all"}
+      onValueChange={(key) => onFilterChange(key)}
+      className="w-full"
+    >
+      <TabsList className="h-auto flex-wrap justify-start">
+        <TabsTrigger value="all">Todos</TabsTrigger>
+        {categories.map((category) => (
+          <TabsTrigger key={category.id} value={category.id}>
+            {category.name}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
+  )
 }

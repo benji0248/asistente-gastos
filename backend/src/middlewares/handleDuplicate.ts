@@ -4,8 +4,8 @@ export const handleDuplicate = async (field: Object) => {
     
     const [key] = Object.keys(field)
     const value = Object.values(field)
-    const duplicateValue: any = await db.query(`SELECT COUNT (*) FROM users WHERE ${key} = ?`, value)
-    const result = duplicateValue[0][0]['COUNT (*)'];
+    const [rows] = await db.query<{ count: string }[]>(`SELECT COUNT(*) AS count FROM users WHERE ${key} = ?`, value)
+    const result = Number(rows[0]?.count ?? 0)
     
     if (result > 0) {
         return true;

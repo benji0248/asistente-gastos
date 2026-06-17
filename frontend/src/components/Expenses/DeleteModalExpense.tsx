@@ -1,53 +1,66 @@
-import React, { useState } from "react"
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "react-bootstrap"
-import { MdDelete } from "react-icons/md"
-import { axiosPrivate } from "../../api/axios"
+import { useState } from "react"
 import useAuth from "../../hooks/useAuth"
+import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Trash2 } from "lucide-react"
 
 interface Props {
-    id: string
-    title: string
+  id: string
+  title: string
 }
 
-export const DeleteModalExpense: React.FC<Props> = ({ id, title }) => {
-
-    const { auth } = useAuth();
-    const [show, setShow] = useState(false)
-    const handleClose = () => setShow(false)
-    const handleShow = () => {
-        console.log(auth.id)
+export const DeleteModalExpense = ({ id, title }: Props) => {
+  const { auth } = useAuth()
+  const axiosPrivate = useAxiosPrivate()
+  const [show, setShow] = useState(false)
+  const handleClose = () => setShow(false)
+  const handleShow = () => {
+    console.log(auth.id)
     console.log(id)
-        setShow(true)
+    setShow(true)
+  }
+  const handleDelete = async () => {
+    try {
+      await axiosPrivate.delete(`/${auth.id}/expenses/${id}`, {
+        withCredentials: true,
+      })
+    } catch (err) {
+      console.log("Error en el componente DeleteExpenses", err)
     }
-    const handleDelete = async () => {
-        try {
-            const response = await axiosPrivate.delete(`/${auth.id}/expenses/${id}`,
-                {
-                    withCredentials: true
-                    
-                });
-            
-        } catch (err) {
-            console.log('Error en el componente DeleteExpenses', err)
-        }
-        handleClose;
-    }
+    handleClose()
+  }
 
-    return (
-        <>
-            <Button size='sm' variant='white' onClick={handleShow}><MdDelete className="deleteIcon" /></Button>
-            <Modal show={show} onHide={handleClose}>
-                <ModalHeader closeButton>
-                    <ModalTitle>Eliminar Gasto</ModalTitle>
-                </ModalHeader>
-                <ModalBody>
-                    Estas seguro que quieres eliminar el gasto {title}?
-                </ModalBody>
-                <ModalFooter>
-                    <Button variant="white" onClick={handleClose}>Cerrar</Button>
-                    <Button variant="danger" onClick={handleDelete}>Borrar</Button>
-                </ModalFooter>
-            </Modal>
-        </>
-    )
+  return (
+    <>
+      <Button variant="ghost" size="icon" onClick={handleShow}>
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+      <Dialog open={show} onOpenChange={setShow}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar Gasto</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro que quieres eliminar el gasto {title}?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Cerrar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Borrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }

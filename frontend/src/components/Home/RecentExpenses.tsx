@@ -1,39 +1,27 @@
-import { Button } from 'react-bootstrap';
-import { Expense} from '../../types'
-import { formattedDate } from '../../consts';
-import useAuth from '../../hooks/useAuth';
-import { useAxiosPrivate } from '../../hooks/useAxiosPrivate';
-import { DeleteModalExpense } from '../Expenses/DeleteModalExpense';
+import { Expense } from "../../types"
+import { formattedDate } from "../../consts"
+import { DeleteModalExpense } from "../Expenses/DeleteModalExpense"
+import { TableCell, TableRow } from "@/components/ui/table"
 
-interface Props{
-    expense: Expense;
+interface Props {
+  expense: Expense
 }
 
-export const RecentExpenses: React.FC<Props> = ({ expense }) => {
-
-    const { auth } = useAuth();
-    const axiosPrivate = useAxiosPrivate();
-
-    const handleComplete = async () => {
-        try {
-            await axiosPrivate.put(`/${auth.id}/expenses/${expense.id}/complete`)
-        } catch (err) {
-            console.log('Error en el fetching handleComplete', err)
-        }
-    }
-
-    return (
-        <>
-        <tr key={expense.id}>
-            <td>
-                  {formattedDate(expense.payment_date) ? formattedDate(expense.payment_date) : 'Sin pagar'}  
-            </td>
-            <td><label className='capitalize-first'> {expense.title} </label>
-            <DeleteModalExpense id={expense.id} title={expense.title}/></td>
-            <td className='capitalize-first'><p>${expense.amount}</p>
-            </td>
-            </tr>
-        </>
-        
-)    
+export const RecentExpenses = ({ expense }: Props) => {
+  return (
+    <TableRow key={expense.id}>
+      <TableCell className="text-muted-foreground">
+        {formattedDate(expense.payment_date)
+          ? formattedDate(expense.payment_date)
+          : "Sin pagar"}
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <span className="capitalize">{expense.title}</span>
+          <DeleteModalExpense id={expense.id} title={expense.title} />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">${expense.amount}</TableCell>
+    </TableRow>
+  )
 }

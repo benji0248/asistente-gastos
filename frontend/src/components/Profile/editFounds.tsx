@@ -1,72 +1,97 @@
 import { useState } from "react"
-import { Button, Form, FormControl, FormLabel, Modal, ModalBody, ModalFooter, ModalHeader } from "react-bootstrap"
-import useAuth from "../../hooks/useAuth";
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate";
-import { Account } from "../../types";
+import useAuth from "../../hooks/useAuth"
+import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { Account } from "../../types"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface Props {
-    account: Account
+  account: Account
 }
 
-export const EditFounds: React.FC<Props> = ({account}) => {
-    
-    const { auth } = useAuth();
-    const account_id = account.id
-    const axiosPrivate = useAxiosPrivate();
-    const [show, setShow] = useState(false);
-    const [amount, setAmount] = useState<number>(account.balance)
+export const EditFounds = ({ account }: Props) => {
+  const { auth } = useAuth()
+  const account_id = account.id
+  const axiosPrivate = useAxiosPrivate()
+  const [show, setShow] = useState(false)
+  const [amount, setAmount] = useState<number>(account.balance)
 
-    const handleClose = () => setShow(false)
-    const handleShow = () => setShow(true)
+  const handleClose = () => setShow(false)
+  const handleShow = () => setShow(true)
 
-    const handleAmountChange = (e:string) =>{
-        const value = e;
-        if (value === '') {
-            setAmount(0)
-        } else {
-            setAmount(parseFloat(value))
-        }
+  const handleAmountChange = (e: string) => {
+    const value = e
+    if (value === "") {
+      setAmount(0)
+    } else {
+      setAmount(parseFloat(value))
     }
+  }
 
-    const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        try {
-            const response = await axiosPrivate.put(`/${auth.id}/accounts/${account_id}/edit`, JSON.stringify({ amount }),
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    withCredentials: true
-                });
-                console.log(JSON.stringify(response.data))
-                console.log(JSON.stringify(response))
-        } catch (err) {
-            console.log('Error en el componente EditFounds', err)
+  const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    try {
+      const response = await axiosPrivate.put(
+        `/${auth.id}/accounts/${account_id}/edit`,
+        JSON.stringify({ amount }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
         }
+      )
+      console.log(JSON.stringify(response.data))
+      console.log(JSON.stringify(response))
+    } catch (err) {
+      console.log("Error en el componente EditFounds", err)
     }
+  }
 
-    return(
-        <>
-            <Button className="mb-2 ms-3" variant="outline-dark" onClick={handleShow}>Cambiar los fondos</Button>
-            <Modal show={show} onHide={handleClose} syze="sm">
-                <ModalHeader>Agregar fondos a la cuenta</ModalHeader>
-                <ModalBody>
-                    <Form onSubmit={(e) => addFounds(e)}>
-                        <FormLabel>Ingrese el dinero que desea agregar</FormLabel>
-                        <FormControl
-                            type="text"
-                            placeholder="0"
-                            name="amount"
-                            value={amount}
-                            onChange={(e) => handleAmountChange(e.target.value)}
-                            required></FormControl>
-                        <ModalFooter>
-                            <Button variant="outline-secondary" size="sm" onClick={handleClose}>Cerrar</Button>
-                            <Button variant="warning" size="sm" type="submit" onClick={handleClose}>Cambiar Fondos</Button>
-                        </ModalFooter>
-                    </Form>
-                </ModalBody>
-            </Modal>
-        </>
-    )
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={handleShow}>
+        Cambiar los fondos
+      </Button>
+      <Dialog open={show} onOpenChange={setShow}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cambiar fondos de la cuenta</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => addFounds(e)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">
+                Ingrese el nuevo saldo de la cuenta
+              </Label>
+              <Input
+                id="edit-amount"
+                type="text"
+                placeholder="0"
+                name="amount"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={handleClose}>
+                Cerrar
+              </Button>
+              <Button type="submit" onClick={handleClose}>
+                Cambiar Fondos
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }

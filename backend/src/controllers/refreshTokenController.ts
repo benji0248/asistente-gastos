@@ -1,9 +1,9 @@
 import { db } from "../database/database";
 import { Request, Response } from "express";
 import { Token, Users } from "../config/types";
-import { RowDataPacket } from "mysql2";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import dotenv from 'dotenv'
+import { cookieOptions, clearCookieOptions } from "../config/cookies";
 
 dotenv.config();
 
@@ -21,13 +21,13 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
     if (!cookies?.jwt) {
         return res.sendStatus(401);
     }
-    res.clearCookie('jwt', { httpOnly: true, sameSite:'none', secure: true });
-    const [foundToken] = await db.query<RowDataPacket[]>(`SELECT * FROM tokens WHERE token = ?`, refreshToken)
+    res.clearCookie('jwt', clearCookieOptions);
+    const [foundToken] = await db.query<Token[]>(`SELECT * FROM tokens WHERE token = ?`, refreshToken)
     if (foundToken.length === 0) return res.status(403)
-    const [typedFoundToken] = foundToken as Token[]
+    const typedFoundToken = foundToken[0]
     if (!accessSecret || !refreshSecret) throw new Error('El token no esta definido.')
-    const [foundUser] = await db.query<RowDataPacket[]>(`SELECT * FROM users WHERE id = ?`, typedFoundToken.user_id)
-    const [typedFoundUser] = foundUser as Users[]
+    const [foundUser] = await db.query<Users[]>(`SELECT * FROM users WHERE id = ?`, typedFoundToken.user_id)
+    const typedFoundUser = foundUser[0]
     if (!typedFoundToken || !typedFoundToken.user_id) {
         try {
             const decoded = jwt.verify(refreshToken, refreshSecret) as JwtPayload
@@ -63,6 +63,6 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
         { expiresIn: '1d' }
     );
     await db.query(`UPDATE tokens SET token = ? WHERE id = ?`, [newRefreshToken, typedFoundToken.id])
-    res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
+    res.cookie('jwt', newRefreshToken, cookieOptions)
     res.json({user,role,accessToken, id})
 }

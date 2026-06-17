@@ -1,5 +1,3 @@
-import { RowDataPacket } from 'mysql2'
-import accountsControllers from '../controllers/accountsControllers'
 import { db } from '../database/database'
 import { Account, newAccount } from './types'
 
@@ -16,7 +14,7 @@ class accountsServices{
 
     static getOneAccount = async (accountId:string): Promise<Account | undefined> => {
         try{
-            const [result] = await db.query<RowDataPacket[]>(`SELECT * FROM accounts WHERE id = ?`, [accountId])
+            const [result] = await db.query<Account[]>(`SELECT * FROM accounts WHERE id = ?`, [accountId])
             if(result.length > 0)
             return result[0] as Account
         }catch(err){

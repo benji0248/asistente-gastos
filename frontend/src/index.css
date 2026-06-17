@@ -1,201 +1,42 @@
-*{
-    font-size: small;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.capitalize-first::first-letter{
-    text-transform: uppercase;
-}
-
-td {
-    vertical-align: middle;
-}
-
-.deleteIcon, .editIcon{
-    display: flex;
-    margin: 0;
-    padding: 0;
-}
-
-.classContainer {
-    width: 100%;
-    max-width: 300px;
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding: 1rem;
-    background-color: #e5e5e55d;
-    border-radius: 15px;
-}
-
-.instructions {
-    font-size: 0.751rem;
-    border-radius: 0.5rem;
-    background: #000;
-    color: #fff;
-    padding: 0.25rem;
-    position: relative;
-    bottom: -10px;
-}
-
-.instructions > svg {
-    margin-right: 0.25rem;
-}
-
-.offscreen {
-    position: absolute;
-    left: -9999px;
-}
-
-.hide {
-    display: none;
-}
-
-.valid {
-    color: limegreen;
-    margin-left: 0.25rem;
-}
-
-.invalid {
-    color: red;
-    margin-left: 0.25rem;
-}
-
-.errmsg {
-    background-color: lightpink;
-    color: firebrick;
-    font-weight: bold;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.rButton{
-    margin-top: 5px;
-}
-
-.line {
-    display: inline-block;
-    text-decoration: none !important; 
-    
-}
-
-input[type="text"],
-input[type="password"],
-input[type="email"],
-button,
-textarea {
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  padding: 0.25rem;
-  border-radius: 0.5rem;
-}
-
-form {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    flex-grow: 1;
-    padding-bottom: 1rem;
-}
-
-.verticalCenter{
-    justify-content: center;
-    align-items: center;
-}
-
-.login-nav{
-    display: flex !important;
-    justify-content: flex-end !important;
-    width: 100% !important;
-}
-
-@media (max-width: 992px) {
-    .login-nav{
-        order: 0;
-    }
-}
-.linksNav{
-display: flex;
-}
-
-.loginLink{
-    color: black;
-    font-weight: bold;
-}
-
-.registerLink{
-    display: flex ;
-    background-color: #f4a261;
-    border-radius: 10px;
-    color: black;
-    padding: 3px;
-    font-size: small;
-    justify-content: center;
-    align-items: center;
-    width: 60px;
-}
-
-.profileContainer{
-    border: solid 1px rgb(0, 0, 0,0.2); 
-    border-radius: 10px;
-}
-
-.totalBalance{
-    font-size: x-large;
-    font-weight: 700;
-}
-
-.fontSizeAccount{
-    font-weight: 400;
-}
-
-.accordion-button:not(.collapsed){
-    background-color: transparent;
-    color:inherit;
-    box-shadow: none;
-}
-
-.balanceAccount {
-    position: relative;
-    margin-left: auto;
-}
-
-.borderNavbar{
-    border-bottom: solid 1px rgb(0, 0, 0, 0.2)
-}
-
-.textColorGreen {
-    color: forestgreen;
-}
-
-.textColorRed{
-    color: red;
-}
-
-.customTabs .nav-link {
-    background-color: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 20px;
-    color: #333;
-    padding: 7px 15px;
-    transition: background-color 0.3s ease, color 0.3s ease;
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 160 60% 95%;
+    --accent-foreground: 160 84% 25%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
+    --radius: 0.625rem;
+    --chart-1: 160 84% 39%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
-  .customTabs{
-    border-bottom: none;
-  }
-  
-  .customTabs .nav-link.active {
-    background-color: black;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-  }
+}
 
-  .customTabs .nav-link:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-    color: black;
+@layer base {
+  * {
+    @apply border-border;
   }
-  .customTabs .nav-item {
-    margin-right: 10px;
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
   }
+}

@@ -2,13 +2,12 @@ import { db } from "../database/database";
 import bcrypt from 'bcrypt';
 import { Request, Response } from "express";
 import { Users } from "../config/types";
-import { RowDataPacket } from "mysql2";
 import jwt from "jsonwebtoken";
 import dotenv from 'dotenv'
 import { handleTokenInsertion } from "../middlewares/tokenInsertion";
+import { cookieOptions, clearCookieOptions } from "../config/cookies";
 
 dotenv.config();
-const path = require('path')
 
 export const handleLogin = async (req: Request, res: Response) => {
     const cookies = req.cookies;
@@ -19,10 +18,10 @@ export const handleLogin = async (req: Request, res: Response) => {
         return res.status(400).json({'message': 'Ingrese la contraseña por favor'})
     } else {
         try {
-            const [foundUser] = await db.query<RowDataPacket[]>(`SELECT * FROM users WHERE username = ?`, user)
+            const [foundUser] = await db.query<Users[]>(`SELECT * FROM users WHERE username = ?`, user)
             if (foundUser.length === 0) return res.status(400).json({ message: 'Usuario incorrecto' })
-            const [typeFoundUser] = foundUser as Users[]
-            const [foundToken] = await db.query<RowDataPacket[]>(`SELECT * FROM tokens WHERE user_id = ?`, [typeFoundUser.id])
+            const typeFoundUser = foundUser[0]
+            const [foundToken] = await db.query(`SELECT * FROM tokens WHERE user_id = ?`, [typeFoundUser.id])
             const match = await bcrypt.compare(pwd, typeFoundUser.pwd)
             console.log(match)
             if(!match) return res.status(400).json({message:'Clave incorrecta'})
@@ -52,11 +51,11 @@ export const handleLogin = async (req: Request, res: Response) => {
 
             if (cookies?.jwt) {
                 await db.query(`DELETE FROM tokens WHERE token = ? AND user_id = ?`, [cookies.jwt, typeFoundUser.id])
-                res.clearCookie('jwt', { httpOnly: true, sameSite: 'none', secure: true })
+                res.clearCookie('jwt', clearCookieOptions)
             }
 
             await handleTokenInsertion(newRefreshToken, typeFoundUser.id)
-            res.cookie('jwt', newRefreshToken, {httpOnly: true, maxAge: 24*60*60*1000})
+            res.cookie('jwt', newRefreshToken, cookieOptions)
             res.json({role, accessToken, id, username})
             }
         } catch (err) {

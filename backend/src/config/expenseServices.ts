@@ -1,4 +1,3 @@
-import { RowDataPacket } from "mysql2";
 import { db } from "../database/database";
 import accountsServices from "./accountsServices";
 import { newExpenses, Expenses } from "./types";
@@ -15,7 +14,7 @@ class expenseServices{
 
     static getOneExpense = async (expenseId: string): Promise<Expenses | undefined> => {
         try {
-            const [result] = await db.query<RowDataPacket[]>(`SELECT * FROM expenses WHERE id = ?`, [expenseId])
+            const [result] = await db.query<Expenses[]>(`SELECT * FROM expenses WHERE id = ?`, [expenseId])
             return result[0] as Expenses       
         } catch(err) {
             console.error('Error en el servicio getOneExpense', err)
@@ -24,8 +23,8 @@ class expenseServices{
 
     static getExpensesByMonth = async (month:any, year:any) => {
         try {
-            const [expenses] = await db.query<RowDataPacket[]>(
-                `SELECT * FROM expenses WHERE MONTH(created_at) = ? AND YEAR(created_at) = ?`,
+            const [expenses] = await db.query<Expenses[]>(
+                `SELECT * FROM expenses WHERE EXTRACT(MONTH FROM created_at) = ? AND EXTRACT(YEAR FROM created_at) = ?`,
                 [month, year]
             )
             return expenses as Expenses[]
@@ -75,7 +74,7 @@ class expenseServices{
         const expense = await this.getOneExpense(expenseId)
         try {
             if (expense) {
-                await db.query(`UPDATE expenses SET is_paid = ?, payment_date = now() WHERE id = ?`, [1, expenseId])
+                await db.query(`UPDATE expenses SET is_paid = ?, payment_date = NOW() WHERE id = ?`, [true, expenseId])
                 await accountsServices.updateBalance(expense.account_id, expense.amount)
             }
         } catch (err) {
@@ -86,7 +85,7 @@ class expenseServices{
     static getAvailableMonths = async () => {
         try {
             const [result] = await db.query(
-                `SELECT DISTINCT MONTH(created_at) AS month, YEAR(created_at) AS year FROM expenses WHERE created_at IS NOT NULL ORDER BY year DESC, month DESC`
+                `SELECT DISTINCT EXTRACT(MONTH FROM created_at)::int AS month, EXTRACT(YEAR FROM created_at)::int AS year FROM expenses WHERE created_at IS NOT NULL ORDER BY year DESC, month DESC`
             );
             console.log(result)
             return result as { month: number;  year: number }[]

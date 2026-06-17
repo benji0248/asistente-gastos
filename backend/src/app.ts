@@ -14,35 +14,54 @@ import logoutRoute from './routes/logout'
 
 dotenv.config()
 
-const app = express();
+const app = express()
 app.disable('x-powered-by')
 
-app.use(express.json());
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[]
+
+app.use(express.json())
 app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-type', 'Authorization'],
-    credentials:true,
-}));
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(null, false)
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-type', 'Authorization'],
+  credentials: true,
+}))
 
-app.use(cookieParser());
+app.use(cookieParser())
 
-app.get('/', (req, res) => {
-    res.send('API running');
-});
+const api = express.Router()
 
-app.use('/register', registerRoute)
-app.use('/login', loginRoute)
-app.use('/refresh', refresh)
-app.use('/logout', logoutRoute)
-app.use(verifyJWT)
-app.use('/users', userRoutes);
-app.use('/:userId/expenses', expensesRoutes)
-app.use('/:userId/categories', categoriesRoutes)
-app.use('/accounts', accountsRoutes);
-app.use('/:userId/accounts', accountsRoutes)
+api.get('/', (_req, res) => {
+  res.send('API running')
+})
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+api.use('/register', registerRoute)
+api.use('/login', loginRoute)
+api.use('/refresh', refresh)
+api.use('/logout', logoutRoute)
+api.use(verifyJWT)
+api.use('/users', userRoutes)
+api.use('/:userId/expenses', expensesRoutes)
+api.use('/:userId/categories', categoriesRoutes)
+api.use('/accounts', accountsRoutes)
+api.use('/:userId/accounts', accountsRoutes)
+
+app.use('/api', api)
+
+export default app
+
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+  })
+}

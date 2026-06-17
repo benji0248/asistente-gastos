@@ -1,4 +1,3 @@
-import { Badge, Button, CardTitle, Col, Container, Row, Tab, Tabs } from "react-bootstrap"
 import { Category, listOfExpenses } from "../../types"
 import { FilterExpenses } from "./FilterExpenses"
 import { sumatoria, sumatoriaPendientes } from "../../consts"
@@ -8,100 +7,140 @@ import { useEffect, useState } from "react"
 import dayjs from "dayjs"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import useAuth from "../../hooks/useAuth"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface Props {
-    completedCount: number
-    filterSelected: string | undefined
-    onClearCompleted: () => void
-    handleFilterChange: (category_id: string | undefined) => void
-    handlePaymentFilter: (key: 'all' | 'paid' | 'unpaid') => void
-    onMonthSelect: (month: string, year:string) => void
-    expenses: listOfExpenses
-    categories: Category[]
+  completedCount: number
+  filterSelected: string | undefined
+  onClearCompleted: () => void
+  handleFilterChange: (category_id: string | undefined) => void
+  handlePaymentFilter: (key: "all" | "paid" | "unpaid") => void
+  onMonthSelect: (month: string, year: string) => void
+  expenses: listOfExpenses
+  categories: Category[]
 }
 
-export const ExpenseHeader: React.FC<Props> = ({
-    completedCount = 0,
-    filterSelected,
-    handleFilterChange,
-    handlePaymentFilter,
-    expenses,
-    categories,
-    onMonthSelect
-}) => {
+export const ExpenseHeader = ({
+  completedCount = 0,
+  filterSelected,
+  handleFilterChange,
+  handlePaymentFilter,
+  expenses,
+  categories,
+  onMonthSelect,
+}: Props) => {
+  const [availableMonths, setAvailableMonths] = useState<
+    { month: string; year: string }[]
+  >([])
+  const [selectedMonthKey, setSelectedMonthKey] = useState("")
+  const axiosPrivate = useAxiosPrivate()
+  const { auth } = useAuth()
 
-    const [availableMonths, setAvailableMonths] = useState([]);
-    const axiosPrivate = useAxiosPrivate();
-    const { auth } = useAuth();
+  useEffect(() => {
+    const fetchAvailableMonths = async () => {
+      try {
+        const response = await axiosPrivate.get(
+          `/${auth.id}/expenses/available-months`
+        )
+        setAvailableMonths(response.data)
 
-    useEffect(() => {
-        const fetchAvailableMonths = async () => {
-          try {
-            const response = await axiosPrivate.get(`/${auth.id}/expenses/available-months`);
-            setAvailableMonths(response.data);
+        const currentMonth = dayjs().format("MM")
+        const currentYear = dayjs().format("YYYY")
 
-            const currentMonth = dayjs().format('MM');
-            const currentYear = dayjs().format('YYYY');
-    
-            const currentMonthExists = response.data.find(
-              (item:any) => item.month === currentMonth && item.year === currentYear
-            );
-    
-            if (currentMonthExists) {
-              onMonthSelect(currentMonth, currentYear);
-            } else if (response.data.length > 0) {
-              onMonthSelect(response.data[0].month, response.data[0].year);
-            }
-          } catch (error) {
-            console.error('Error al obtener los meses disponibles', error);
+        const currentMonthExists = response.data.find(
+          (item: { month: string; year: string }) =>
+            item.month === currentMonth && item.year === currentYear
+        )
+
+        if (currentMonthExists) {
+          onMonthSelect(currentMonth, currentYear)
+          setSelectedMonthKey(`${currentMonth}/${currentYear}`)
+        } else if (response.data.length > 0) {
+          onMonthSelect(response.data[0].month, response.data[0].year)
+          setSelectedMonthKey(
+            `${response.data[0].month}/${response.data[0].year}`
+          )
+        }
+      } catch (error) {
+        console.error("Error al obtener los meses disponibles", error)
+      }
+    }
+
+    fetchAvailableMonths()
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold tracking-tight">Gastos del mes</h2>
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Tabs
+          defaultValue="all"
+          onValueChange={(key) =>
+            handlePaymentFilter(key as "all" | "paid" | "unpaid")
           }
-        };
-    
-        fetchAvailableMonths();
-      }, []);
+        >
+          <TabsList>
+            <TabsTrigger value="all">Todos</TabsTrigger>
+            <TabsTrigger value="unpaid" className="gap-2">
+              Gastos pendientes
+              <Badge variant="destructive">{completedCount}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="paid">Gastos pagados</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-    return (
+        <div className="flex flex-wrap gap-2">
+          {availableMonths.map(({ month, year }) => {
+            const key = `${month}/${year}`
+            return (
+              <Button
+                key={key}
+                variant={selectedMonthKey === key ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  selectedMonthKey === key && "shadow-sm"
+                )}
+                onClick={() => {
+                  setSelectedMonthKey(key)
+                  onMonthSelect(month, year)
+                }}
+              >
+                {key}
+              </Button>
+            )
+          })}
+        </div>
+      </div>
 
-        <Container className="mt-4">
-            <CardTitle className="fs-3 mx-3 mb-5">Gastos del mes</CardTitle>
-            <Row>
-                <Col md={5} className="customTabCol">
-                    <Tabs className="mb-3 ms-3 customTabs" defaultActiveKey='all' onSelect={(key) => handlePaymentFilter(key as any)}>
-                      <Tab title="Todos" eventKey="all" className="fs-4" key='all'></Tab>
-                      <Tab title={<span>Gastos pendientes <Badge bg="danger">{completedCount}</Badge></span>} className="fs-4" eventKey="unpaid" key='unpaid'></Tab>
-                      <Tab title="Gastos pagados" eventKey="paid" key='paid'></Tab>
-                    </Tabs>
-                </Col>
-                <Col>
-            {availableMonths.map(({ month, year }) => (
-                      availableMonths ?
-                      <Button className="me-2" variant="dark" 
-                        key={`${month}/${year}`}
-                        onClick={() => onMonthSelect(month, year)}
-                      >
-                        {`${month}/${year}`}
-                </Button>
-                : <></>
-                    ))}
-                </Col>
-            </Row>
-            <Row className="mb-3">
-            <Col>
-            <span className="mx-2 fs-4 ms-auto">Total de gastos sin pagar:<span className="fs-5 fw-bold ms-2 textColorRed">${sumatoriaPendientes(expenses)}</span></span>
-                </Col>
-                <Col>
-                <span className="fs-4">Total de gastos del mes:</span><span className="textColorGreen fs-5 fw-bold ms-2">${sumatoria(expenses)}</span>
-                </Col>
-            </Row>
-            <CreateExpense />
-            <CreateCategory />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+        <p>
+          Total de gastos sin pagar:{" "}
+          <span className="font-semibold text-destructive">
+            ${sumatoriaPendientes(expenses)}
+          </span>
+        </p>
+        <p>
+          Total de gastos del mes:{" "}
+          <span className="font-semibold text-primary">
+            ${sumatoria(expenses)}
+          </span>
+        </p>
+      </div>
 
-            <FilterExpenses
-                filterSelected={filterSelected}
-                onFilterChange={handleFilterChange}
-                categories={categories}
-            />
-        </Container>
-        
-    )
+      <div className="flex flex-wrap gap-2">
+        <CreateExpense />
+        <CreateCategory />
+      </div>
+
+      <FilterExpenses
+        filterSelected={filterSelected}
+        onFilterChange={handleFilterChange}
+        categories={categories}
+      />
+    </div>
+  )
 }
