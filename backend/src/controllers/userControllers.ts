@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import  userServices  from "../config/userServices";
 import { handleDuplicate } from "../middlewares/handleDuplicate";
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { roleAsignment } from "../middlewares/roleAsignment";
 import roleServices from "../config/roleServices";
 import accountsServices from "../config/accountsServices";
@@ -20,28 +20,26 @@ class userControllers {
     static addUser = async (req: Request, res: Response) => {
         const { username, email, pwd } = req.body;
         if (!username || !email || !pwd) return res.status(400).json({ 'message': 'Datos invalidos' })
-        const duplicateUser = await handleDuplicate({username})
-        const duplicateEmail = await handleDuplicate({email})
-        if (duplicateUser === true) {
-            return res.status(409).json({message: 'El usuario ingresado ya esta en uso'})
-        } else if (duplicateEmail === true) {
-            return res.status(409).json({message: 'El email ingresado ya esta en uso'});
-        } else {
-            try {
-                const hashedPwd = await bcrypt.hash(pwd, 10);
-                const newUser = {
-                    username,
-                    email,
-                    pwd:hashedPwd
-                }
-                await userServices.createOneUser(newUser)
-                const userId = await userServices.getUserId(username)
-                if (userId)
-                await accountsServices.setDefaultAccount(userId);
-                res.status(200)
-            } catch (err) {
-                console.error('Error en el controlador addUser', err)
+        try {
+            const duplicateUser = await handleDuplicate({username})
+            const duplicateEmail = await handleDuplicate({email})
+            if (duplicateUser === true) {
+                return res.status(409).json({message: 'El usuario ingresado ya esta en uso'})
             }
+            if (duplicateEmail === true) {
+                return res.status(409).json({message: 'El email ingresado ya esta en uso'});
+            }
+            const hashedPwd = await bcrypt.hash(pwd, 10);
+            const newUser = { username, email, pwd: hashedPwd }
+            await userServices.createOneUser(newUser)
+            const userId = await userServices.getUserId(username)
+            if (userId) {
+                await accountsServices.setDefaultAccount(userId);
+            }
+            return res.status(201).json({ message: 'Usuario creado' })
+        } catch (err) {
+            console.error('Error en el controlador addUser', err)
+            return res.status(500).json({ message: 'Error al crear el usuario' })
         }
     }
 

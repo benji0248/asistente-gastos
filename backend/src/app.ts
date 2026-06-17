@@ -57,6 +57,16 @@ api.use('/:userId/accounts', accountsRoutes)
 
 app.use('/api', api)
 
+// En Vercel el rewrite puede entregar la ruta sin el prefijo /api
+if (process.env.VERCEL) {
+  app.use(api)
+}
+
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('Unhandled error:', err)
+  res.status(500).json({ message: 'Error interno del servidor' })
+})
+
 export default app
 
 if (!process.env.VERCEL) {

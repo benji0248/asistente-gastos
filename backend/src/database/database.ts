@@ -1,17 +1,30 @@
-import { Pool, PoolConfig } from 'pg'
+import { Pool } from 'pg'
 import dotenv from 'dotenv'
 
 dotenv.config()
 
-const poolConfig: PoolConfig = {
-  connectionString: process.env.DATABASE_URL,
-}
+let pool: Pool | undefined
 
-if (process.env.DATABASE_URL?.includes('supabase')) {
-  poolConfig.ssl = { rejectUnauthorized: false }
-}
+function getPool(): Pool {
+  if (pool) return pool
 
-const pool = new Pool(poolConfig)
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL no está configurada')
+  }
+
+  pool = new Pool({
+    connectionString,
+    ssl: connectionString.includes('supabase')
+      ? { rejectUnauthorized: false }
+      : undefined,
+    max: 1,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  })
+
+  return pool
+}
 
 function toPgParams(sql: string, params?: unknown | unknown[]): { text: string; values: unknown[] } {
   const values = params === undefined ? [] : Array.isArray(params) ? params : [params]
@@ -23,7 +36,7 @@ function toPgParams(sql: string, params?: unknown | unknown[]): { text: string; 
 export const db = {
   query: async <T = unknown>(sql: string, params?: unknown | unknown[]): Promise<[T]> => {
     const { text, values } = toPgParams(sql, params)
-    const result = await pool.query(text, values)
+    const result = await getPool().query(text, values)
     return [result.rows as T]
   },
 }
