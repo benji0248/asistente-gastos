@@ -4,13 +4,9 @@ import dotenv from 'dotenv'
 import userRoutes from './routes/users'
 import expensesRoutes from './routes/expenses'
 import categoriesRoutes from './routes/categories'
-import registerRoute from './routes/register'
 import accountsRoutes from './routes/accounts'
-import loginRoute from './routes/login'
 import { verifyJWT } from './controllers/verifyJWT'
-import cookieParser from 'cookie-parser'
-import refresh from './api/refresh'
-import logoutRoute from './routes/logout'
+import { verifyOwnership } from './middlewares/verifyOwnership'
 
 dotenv.config()
 
@@ -36,28 +32,21 @@ app.use(cors({
   credentials: true,
 }))
 
-app.use(cookieParser())
-
 const api = express.Router()
 
 api.get('/', (_req, res) => {
   res.send('API running')
 })
 
-api.use('/register', registerRoute)
-api.use('/login', loginRoute)
-api.use('/refresh', refresh)
-api.use('/logout', logoutRoute)
 api.use(verifyJWT)
 api.use('/users', userRoutes)
-api.use('/:userId/expenses', expensesRoutes)
-api.use('/:userId/categories', categoriesRoutes)
+api.use('/:userId/expenses', verifyOwnership, expensesRoutes)
+api.use('/:userId/categories', verifyOwnership, categoriesRoutes)
 api.use('/accounts', accountsRoutes)
-api.use('/:userId/accounts', accountsRoutes)
+api.use('/:userId/accounts', verifyOwnership, accountsRoutes)
 
 app.use('/api', api)
 
-// En Vercel el rewrite puede entregar la ruta sin el prefijo /api
 if (process.env.VERCEL) {
   app.use(api)
 }

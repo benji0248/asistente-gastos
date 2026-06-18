@@ -7,7 +7,7 @@ const Home = () => {
   const { auth } = useAuth()
   return (
     <>
-      {auth ? (
+      {auth?.id ? (
         <AppShell>
           <HomeLogged />
         </AppShell>

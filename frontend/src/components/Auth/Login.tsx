@@ -2,15 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { AlertCircle } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
-import axios from "@/api/axios"
-import { AxiosError } from "axios"
+import { supabase } from "@/lib/supabase"
 import { AuthLayout } from "@/components/layout/AuthLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-
-const LOGIN_URL = "/login"
 
 export const Login = () => {
   const { setAuth } = useAuth()
@@ -18,57 +15,64 @@ export const Login = () => {
   const location = useLocation()
   const from = location.state?.from?.pathname || "/"
 
-  const userRef = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
   const errRef = useRef<HTMLParagraphElement>(null)
 
-  const [user, setUser] = useState<string>("")
+  const [email, setEmail] = useState<string>("")
   const [pwd, setPwd] = useState<string>("")
   const [errMsg, setErrMsg] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    userRef.current?.focus()
+    emailRef.current?.focus()
   }, [])
 
   useEffect(() => {
     setErrMsg("")
-  }, [user, pwd])
+  }, [email, pwd])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const response = await axios.post(
-        LOGIN_URL,
-        JSON.stringify({ user, pwd }),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      )
-      const accessToken = response?.data?.accessToken
-      const role = response?.data?.role
-      const id = response?.data?.id
-      setAuth({ user, pwd, role, accessToken, id })
-      setUser("")
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd })
+
+      if (error) {
+        setErrMsg(error.message === 'Invalid login credentials'
+          ? 'Email o contraseña incorrectos'
+          : error.message)
+        errRef.current?.focus()
+        return
+      }
+
+      const session = data.session
+      if (!session) {
+        setErrMsg('No se pudo iniciar sesión')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, role')
+        .eq('id', session.user.id)
+        .single()
+
+      const id = session.user.id
+      setAuth({
+        id,
+        email: session.user.email ?? email,
+        user: profile?.username ?? session.user.email ?? email,
+        role: profile?.role ?? 1712,
+        accessToken: session.access_token,
+      })
+
+      setEmail("")
       setPwd("")
       const redirectionPath = from.replace(":userId", id)
       navigate(redirectionPath, { replace: true })
-    } catch (err) {
-      let errorMessage =
-        "Error al iniciar sesión. Por favor, intente de nuevo."
-
-      if (err instanceof AxiosError) {
-        if (err.response) {
-          errorMessage = err.response.data.message || "Error en la solicitud"
-        } else if (err.request) {
-          errorMessage = "No se recibió respuesta del servidor"
-        } else {
-          errorMessage = err.message
-        }
-      }
-      setErrMsg(errorMessage)
+    } catch {
+      setErrMsg("Error al iniciar sesión. Por favor, intente de nuevo.")
       errRef.current?.focus()
     } finally {
       setIsLoading(false)
@@ -78,7 +82,7 @@ export const Login = () => {
   return (
     <AuthLayout
       title="Inicia sesión"
-      subtitle="Ingresa tus credenciales para acceder a tu cuenta"
+      subtitle="Ingresa tu email y contraseña"
     >
       {errMsg && (
         <Alert variant="destructive" className="mb-6">
@@ -91,16 +95,16 @@ export const Login = () => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="username">Usuario</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
-            type="text"
-            id="username"
-            ref={userRef}
-            autoComplete="username"
-            onChange={(e) => setUser(e.target.value)}
-            value={user}
+            type="email"
+            id="email"
+            ref={emailRef}
+            autoComplete="email"
+            onChange={(e) => setEmail(e.target.value)}
+            value={email}
             required
-            placeholder="Tu nombre de usuario"
+            placeholder="tu@email.com"
           />
         </div>
 

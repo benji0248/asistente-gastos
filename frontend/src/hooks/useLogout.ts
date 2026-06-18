@@ -1,16 +1,15 @@
-import axios from '../api/axios'
+import { supabase } from '@/lib/supabase'
 import useAuth from './useAuth'
 
 export const useLogout = () => {
-    const { setAuth } = useAuth();
+    const { setAuth } = useAuth()
+
     const logout = async () => {
-        setAuth({});
+        setAuth(null)
         try {
-            const response = await axios(`/logout`, {
-                withCredentials: true
-            });
+            await supabase.auth.signOut()
         } catch (err) {
-            console.log(err)
+            console.error(err)
         }
     }
     return logout

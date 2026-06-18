@@ -7,7 +7,6 @@ const userRoutes = Router();
 
 userRoutes.get('/', verifyRoles(ROLES_LIST.admin, ROLES_LIST.user), userControllers.getUsers);
 userRoutes.get('/:userId', verifyRoles(ROLES_LIST.admin), userControllers.getOneUser);
-userRoutes.post('/', userControllers.addUser);
 userRoutes.put('/:userId', verifyRoles(ROLES_LIST.admin, ROLES_LIST.editor, ROLES_LIST.user), userControllers.updateUser);
 userRoutes.delete('/:userId', verifyRoles(ROLES_LIST.admin), userControllers.deleteUser);
 

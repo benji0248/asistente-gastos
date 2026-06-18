@@ -1,26 +1,36 @@
-import jwt, { JwtPayload } from 'jsonwebtoken'
 import dotenv from 'dotenv'
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express'
+import { db } from '../database/database'
+import { getSupabase } from '../lib/supabase'
+import { Profile } from '../config/types'
 
-dotenv.config();
+dotenv.config()
 
-interface CustomRequest extends Request {
-    user?: string | object;
-    role?: number
-}
+export const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization ?? req.headers.Authorization
+  if (Array.isArray(authHeader) || !authHeader?.startsWith('Bearer ')) {
+    return res.sendStatus(401)
+  }
 
-export const verifyJWT = (req: CustomRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET;
-    if(Array.isArray(authHeader)) return res.sendStatus(401)
-    if (!authHeader?.startsWith('Bearer ') || !accessTokenSecret) return res.sendStatus(401);
-    try {
-        const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, accessTokenSecret!) as JwtPayload;
-        req.user = decoded.UserInfo.username;
-        req.role = decoded.UserInfo.role
-        next();
-    } catch (err) {
-        console.error('No se pudo verificar el token', err)
-    }
+  const token = authHeader.split(' ')[1]
+
+  try {
+    const { data: { user }, error } = await getSupabase().auth.getUser(token)
+    if (error || !user) return res.sendStatus(403)
+
+    const [profiles] = await db.query<Profile[]>(
+      'SELECT * FROM profiles WHERE id = ?',
+      [user.id]
+    )
+    const profile = profiles[0]
+    if (!profile) return res.sendStatus(403)
+
+    req.userId = user.id
+    req.user = profile.username
+    req.role = profile.role
+    next()
+  } catch (err) {
+    console.error('No se pudo verificar el token de Supabase', err)
+    res.sendStatus(403)
+  }
 }

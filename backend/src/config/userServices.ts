@@ -1,10 +1,10 @@
 import { db } from "../database/database";
-import { Users, newUsers } from "./types";
+import { Profile } from "./types";
 
-class userServices{
+class userServices {
     static getAllUsers = async () => {
         try {
-            const [result] = await db.query("SELECT * FROM users")
+            const [result] = await db.query("SELECT * FROM profiles")
             if (!result) {
                 throw new Error('No se encontraron usuarios')
             }
@@ -13,58 +13,36 @@ class userServices{
             console.error('Error en el servicio getAllUsers:', err)
         }
     }
-    
-    static getUserById = async (userId:string) => {
+
+    static getUserById = async (userId: string) => {
         try {
-            const [row] = await db.query(`
-                SELECT * FROM users WHERE id = ?`, [userId])
+            const [row] = await db.query(`SELECT * FROM profiles WHERE id = ?`, [userId])
             if (!row) {
                 throw new Error('No se encontro el usuario')
             }
-            return row as Users[]
+            return row as Profile[]
         } catch (err) {
             console.error('Error en el servicio getUserById', err)
         }
     }
 
-    static getUserId = async (username: string) => {
-        try {
-            const [user] = await db.query(`SELECT * FROM users WHERE username = ?`, username)
-            const [typedUser] = user as Users[]
-            return typedUser.id
-        } catch (err) {
-            console.error('Error en el servicio getUserId', err);
-        }
-    }
-    
-    static createOneUser = async (dataUser:newUsers) => {
-        try {
-            await db.query(`
-            INSERT INTO users (username, email, pwd, created_at, role) VALUES(?,?,?, NOW(), 1712)`, [dataUser.username, dataUser.email, dataUser.pwd])
-        } catch (err) {
-            console.error('Error en el servicio createOneUser', err)
-        }
-    }
-    
-    static updateOneUser = async (userId:string, updateData:keyof Users) => {
+    static updateOneUser = async (userId: string, updateData: Partial<Profile>) => {
         try {
             const [key, value] = Object.entries(updateData)[0]
-            const query = `
-                UPDATE users
-                SET ${key} = ?
-                WHERE id = ?`;
+            const query = `UPDATE profiles SET ${key} = ? WHERE id = ?`;
             await db.query(query, [value, userId])
         } catch (err) {
             console.error('Error en el servicio updateOneUser', err)
         }
     }
-    
-    static deleteOneUser = async (userId:string) => {
+
+    static deleteOneUser = async (userId: string) => {
         try {
-            await db.query(`DELETE FROM users WHERE id = ?`, [userId]);
+            await db.query(`DELETE FROM profiles WHERE id = ?`, [userId]);
         } catch (err) {
             console.error('Error en el servicio deleteOneUser', err)
         }
     }
 }
+
 export default userServices

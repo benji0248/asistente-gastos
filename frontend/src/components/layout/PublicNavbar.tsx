@@ -51,7 +51,7 @@ export function PublicNavbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          {auth ? (
+          {auth?.id ? (
             <Button variant="outline" onClick={signOut}>
               Cerrar sesión
             </Button>
@@ -95,7 +95,7 @@ export function PublicNavbar() {
             </Link>
           ))}
           <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
-            {auth ? (
+            {auth?.id ? (
               <Button variant="outline" onClick={signOut}>
                 Cerrar sesión
               </Button>

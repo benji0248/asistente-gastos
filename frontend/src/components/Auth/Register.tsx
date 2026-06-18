@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { AlertCircle, Check, CheckCircle2, X } from "lucide-react"
-import axios from "@/api/axios"
-import { AxiosError } from "axios"
+import { supabase } from "@/lib/supabase"
 import { AuthLayout } from "@/components/layout/AuthLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +19,6 @@ import { cn } from "@/lib/utils"
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/
 const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
-const REGISTER_URL = "/register"
 
 function FieldStatus({
   valid,
@@ -91,29 +89,23 @@ export const Register = () => {
     setIsLoading(true)
 
     try {
-      await axios.post(
-        REGISTER_URL,
-        JSON.stringify({ username: user, pwd, email }),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      )
-      setSuccess(true)
-    } catch (err) {
-      let errorMessage =
-        "Error al registrarse. Por favor, intente de nuevo."
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: pwd,
+        options: {
+          data: { username: user },
+        },
+      })
 
-      if (err instanceof AxiosError) {
-        if (err.response) {
-          errorMessage = err.response.data.message || "Error en la solicitud"
-        } else if (err.request) {
-          errorMessage = "No se recibió respuesta del servidor"
-        } else {
-          errorMessage = err.message
-        }
+      if (error) {
+        setErrMsg(error.message)
+        errRef.current?.focus()
+        return
       }
-      setErrMsg(errorMessage)
+
+      setSuccess(true)
+    } catch {
+      setErrMsg("Error al registrarse. Por favor, intente de nuevo.")
       errRef.current?.focus()
     } finally {
       setIsLoading(false)
