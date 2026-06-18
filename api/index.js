@@ -1,3 +1,5 @@
-const app = require('../backend/dist/app.js')
+import backend from '../backend/dist/app.js'
 
-module.exports = app
+const app = backend.default ?? backend
+
+export default app
