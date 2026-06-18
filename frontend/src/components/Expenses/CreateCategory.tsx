@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-function CreateCategory() {
+function CreateCategory({ onCreated }: { onCreated?: () => void }) {
   const { auth } = useAuth()
   const axiosPrivate = useAxiosPrivate()
   const [name, setName] = useState<string>("")
@@ -34,7 +34,9 @@ function CreateCategory() {
         }
       )
       console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      setName("")
+      setShow(false)
+      onCreated?.()
     } catch (err) {
       console.log("Error en el componente CreateCategory", err)
     }
@@ -67,7 +69,7 @@ function CreateCategory() {
               <Button variant="outline" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
-              <Button type="submit" onClick={handleClose}>
+              <Button type="submit">
                 Agregar categoría
               </Button>
             </DialogFooter>

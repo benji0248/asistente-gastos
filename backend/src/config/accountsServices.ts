@@ -1,136 +1,192 @@
-import { db } from '../database/database'
+import { getSupabaseAdmin } from '../lib/supabase'
 import { Account, newAccount } from './types'
 
 class accountsServices{
 
-    static getAllAccounts = async (userId:string) => {
-        try{
-            const [result] = await db.query (`SELECT * FROM accounts WHERE user_id = ?`,[userId])
-            return result
-        }catch(err){
-            console.error('Error en el servicio getAllAccounts', err)
-        }
+    private static normalizeUserIds = (userIds: string | string[]) => {
+        return Array.isArray(userIds) ? userIds : [userIds]
     }
 
-    static getOneAccount = async (accountId:string): Promise<Account | undefined> => {
+    static getAllAccounts = async (userIds: string | string[]) => {
+        const { data, error } = await getSupabaseAdmin()
+            .from('accounts')
+            .select('*')
+            .in('user_id', this.normalizeUserIds(userIds))
+        if (error) throw error
+        return data ?? []
+    }
+
+    static getOneAccount = async (accountId:string, visibleUserIds?: string[]): Promise<Account | undefined> => {
         try{
-            const [result] = await db.query<Account[]>(`SELECT * FROM accounts WHERE id = ?`, [accountId])
-            if(result.length > 0)
-            return result[0] as Account
+            let query = getSupabaseAdmin()
+                .from('accounts')
+                .select('*')
+                .eq('id', accountId)
+            if (visibleUserIds?.length) {
+                query = query.in('user_id', visibleUserIds)
+            }
+            const { data, error } = await query.maybeSingle()
+            if (error) throw error
+            if (data) return data as Account
         }catch(err){
             console.error('Error en el servicio getOneAccount', err)
+            throw err
         }
     }
 
     static addAccount = async (userId:string, dataAccout:newAccount) => {
         try{
-            const result = await db.query (`
-                INSERT INTO accounts (user_id, type, balance, description, created_at)
-                VALUES (?,?,?,?,now())`, [userId, dataAccout.type, dataAccout.balance, dataAccout.description])
-            console.log('Se logro crear la cuenta con exito', result);
+            const { data, error } = await getSupabaseAdmin()
+                .from('accounts')
+                .insert({
+                    user_id: userId,
+                    type: dataAccout.type,
+                    balance: dataAccout.balance,
+                    description: dataAccout.description,
+                })
+                .select('*')
+                .single()
+            if (error) throw error
+            return data as Account
         }catch(err){
             console.error('Error en el servicio addAccount', err)
+            throw err
         }
     }
 
     static setDefaultAccount = async (userId: string) => {
-        const type = "cash"
-        const balance = 0
-        const description = "efectivo"
         try {
-            await db.query(`INSERT INTO accounts (user_id, type, balance, description, created_at)
-                VALUES (?,?,?,?,now())`, [userId, type, balance, description])
+            const { error } = await getSupabaseAdmin()
+                .from('accounts')
+                .insert({
+                    user_id: userId,
+                    type: 'cash',
+                    balance: 0,
+                    description: 'efectivo',
+                })
+            if (error) throw error
         } catch (err) {
             console.error('Error en el servicio setDefaultAccount', err)
         }
     }
 
-    static updateAccount = async (accountId:string, dataAccount:Account) => {
+    static updateAccount = async (accountId:string, dataAccount:Account, visibleUserIds?: string[]) => {
         try{
-            await db.query(
-                `UPDATE accounts SET type = ?, balance = ?, description = ? WHERE id = ?`,
-                [dataAccount.type,dataAccount.balance,dataAccount.description,accountId]);
-
+            let query = getSupabaseAdmin()
+                .from('accounts')
+                .update({
+                    type: dataAccount.type,
+                    balance: dataAccount.balance,
+                    description: dataAccount.description,
+                })
+                .eq('id', accountId)
+            if (visibleUserIds?.length) {
+                query = query.in('user_id', visibleUserIds)
+            }
+            const { error } = await query
+            if (error) throw error
         }catch(err){
             console.error('Error en el servicio updateAccount', err)
+            throw err
         }
     }
 
-    static editFounds = async (accountId: string, newBalance: Number) => {
-        const account = await this.getOneAccount(accountId)
+    static editFounds = async (accountId: string, newBalance: Number, visibleUserIds?: string[]) => {
+        const account = await this.getOneAccount(accountId, visibleUserIds)
         try{
             if (account) {
-                await db.query(
-                    `UPDATE accounts SET balance = ? WHERE id = ?`,
-                    [newBalance,accountId]);
+                const { error } = await getSupabaseAdmin()
+                    .from('accounts')
+                    .update({ balance: newBalance })
+                    .eq('id', accountId)
+                if (error) throw error
             } else {
                 throw new Error ('No se consiguio la fuente de fondos')
             }
-
         }catch(err){
             console.error('Error en el servicio updateAccount', err)
+            throw err
         }
     }
 
-    static updateBalance = async (accountId: string, expenseAmount: number) => {
-        
-        const account = await this.getOneAccount(accountId)
+    static updateBalance = async (accountId: string, expenseAmount: number, visibleUserIds?: string[]) => {
+        const account = await this.getOneAccount(accountId, visibleUserIds)
         try {
             if (account) {
                 const balance = Number(account.balance) - Number(expenseAmount)
-                await db.query(
-                    `UPDATE accounts SET balance = ? WHERE id = ?`, [balance, accountId])
+                const { error } = await getSupabaseAdmin()
+                    .from('accounts')
+                    .update({ balance })
+                    .eq('id', accountId)
+                if (error) throw error
             } else {
                 throw new Error ('No se consiguio la fuente de fondos')
             }
         }catch(err){
             console.error('Error en el servicio updateBalance', err)
+            throw err
         }
     }
 
-    static addFounds = async (accountId: string, foundsToAdd: number) => {
-        
-        const account = await this.getOneAccount(accountId)
+    static addFounds = async (accountId: string, foundsToAdd: number, visibleUserIds?: string[]) => {
+        const account = await this.getOneAccount(accountId, visibleUserIds)
         try {
             if (account) {
                 const balance = Number(account.balance) + Number(foundsToAdd)
-                console.log(balance)
-                await db.query(
-                    `UPDATE accounts SET balance = ? WHERE id = ?`, [balance, accountId])
+                const { error } = await getSupabaseAdmin()
+                    .from('accounts')
+                    .update({ balance })
+                    .eq('id', accountId)
+                if (error) throw error
             } else {
                 throw new Error ('No se consiguio la fuente de fondos')
             }
         }catch(err){
             console.error('Error en el servicio addFounds', err)
+            throw err
         }
     }
 
-    static transferFounds = async (accountId: string, accountToTransferId: string, moneyToTransfer: number) => {
-        
-        const account = await this.getOneAccount(accountId)
-        const accountToTransfer = await this.getOneAccount(accountToTransferId)
+    static transferFounds = async (accountId: string, accountToTransferId: string, moneyToTransfer: number, visibleUserIds?: string[]) => {
+        const account = await this.getOneAccount(accountId, visibleUserIds)
+        const accountToTransfer = await this.getOneAccount(accountToTransferId, visibleUserIds)
         try {
-            if (account && accountToTransfer
-            ) {
+            if (account && accountToTransfer) {
                 const originAccountBalance = Number(account.balance) - Number(moneyToTransfer)
                 const destinyAccountBalance = Number(accountToTransfer.balance) + Number(moneyToTransfer)
-                await db.query(
-                    `UPDATE accounts SET balance = ? WHERE id = ?`, [originAccountBalance, accountId])
-                await db.query(
-                    `UPDATE accounts SET balance = ? WHERE id = ?`, [destinyAccountBalance, accountToTransferId])
+                const { error: originError } = await getSupabaseAdmin()
+                    .from('accounts')
+                    .update({ balance: originAccountBalance })
+                    .eq('id', accountId)
+                if (originError) throw originError
+                const { error: destinyError } = await getSupabaseAdmin()
+                    .from('accounts')
+                    .update({ balance: destinyAccountBalance })
+                    .eq('id', accountToTransferId)
+                if (destinyError) throw destinyError
             } else {
                 throw new Error ('No se consiguio la fuente de fondos')
             }
         }catch(err){
             console.error('Error en el servicio addFounds', err)
+            throw err
         }
     }
 
-    static deleteAccount = async (accountId:string) => {
+    static deleteAccount = async (accountId:string, visibleUserIds?: string[]) => {
         try{
-            await db.query(`DELETE FROM accounts WHERE id = ?`, accountId)
+            let query = getSupabaseAdmin()
+                .from('accounts')
+                .delete()
+                .eq('id', accountId)
+            if (visibleUserIds?.length) {
+                query = query.in('user_id', visibleUserIds)
+            }
+            const { error } = await query
+            if (error) throw error
         }catch(err){
             console.error('Error en el servicio deleteAccount', err)
+            throw err
         }
     }
 

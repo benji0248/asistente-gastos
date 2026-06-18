@@ -1,75 +1,43 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Menu, X, Wallet } from "lucide-react"
-import useAuth from "@/hooks/useAuth"
-import { useLogout } from "@/hooks/useLogout"
+import { Link } from "react-router-dom"
+import { Menu, Wallet, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export function PublicNavbar() {
-  const { auth } = useAuth()
-  const navigate = useNavigate()
-  const logout = useLogout()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const signOut = async () => {
-    await logout()
-    navigate("/login")
-  }
-
-  const navLinks = auth?.id
-    ? [
-        { to: "/home", label: "Inicio" },
-        { to: `/${auth.id}/expenses`, label: "Gastos" },
-        { to: `/${auth.id}/profile`, label: "Cuenta" },
-      ]
-    : [{ to: "/home", label: "Inicio" }]
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full glass-panel border-b">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/home" className="flex items-center gap-2 font-bold text-lg">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <Link to="/home" className="flex items-center gap-2.5 font-display font-bold text-lg">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background shadow-soft">
             <Wallet className="h-5 w-5" />
           </div>
-          <span>
-            Control de{" "}
-            <span className="text-primary">Gastos</span>
-          </span>
+          <span>Control de Gastos</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Link
+            to="/home"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            Inicio
+          </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          {auth?.id ? (
-            <Button variant="outline" onClick={signOut}>
-              Cerrar sesión
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" asChild>
-                <Link to="/login">Iniciar sesión</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/register">Registrarse</Link>
-              </Button>
-            </>
-          )}
+          <Button variant="outline" asChild className="rounded-xl">
+            <Link to="/login">Iniciar sesión</Link>
+          </Button>
+          <Button asChild className="rounded-xl shadow-soft">
+            <Link to="/register">Registrarse</Link>
+          </Button>
         </div>
 
         <button
           type="button"
-          className="md:hidden rounded-md p-2 text-muted-foreground hover:bg-accent"
+          className="md:hidden rounded-xl p-2 text-muted-foreground hover:bg-accent"
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
         >
@@ -79,40 +47,29 @@ export function PublicNavbar() {
 
       <div
         className={cn(
-          "md:hidden border-t border-border/60 bg-background",
+          "md:hidden border-t border-border/40 bg-card/90 backdrop-blur-xl",
           mobileOpen ? "block" : "hidden"
         )}
       >
         <div className="flex flex-col gap-1 px-4 py-3">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Link
+            to="/home"
+            className="rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
+            onClick={() => setMobileOpen(false)}
+          >
+            Inicio
+          </Link>
           <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
-            {auth?.id ? (
-              <Button variant="outline" onClick={signOut}>
-                Cerrar sesión
-              </Button>
-            ) : (
-              <>
-                <Button variant="outline" asChild>
-                  <Link to="/login" onClick={() => setMobileOpen(false)}>
-                    Iniciar sesión
-                  </Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/register" onClick={() => setMobileOpen(false)}>
-                    Registrarse
-                  </Link>
-                </Button>
-              </>
-            )}
+            <Button variant="outline" asChild className="rounded-xl">
+              <Link to="/login" onClick={() => setMobileOpen(false)}>
+                Iniciar sesión
+              </Link>
+            </Button>
+            <Button asChild className="rounded-xl">
+              <Link to="/register" onClick={() => setMobileOpen(false)}>
+                Registrarse
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

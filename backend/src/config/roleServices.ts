@@ -1,12 +1,15 @@
-import { db } from "../database/database";
-import { Profile } from "./types";
+import { getSupabaseAdmin } from '../lib/supabase'
 
 class roleServices {
 
     static getRole = async (userId: string) => {
-        const [result] = await db.query(`SELECT * FROM profiles WHERE id = ?`, userId);
-        const [typedResult] = result as Profile[]
-        return typedResult.role;
+        const { data, error } = await getSupabaseAdmin()
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .single()
+        if (error) throw error
+        return data.role
     }
 
 }

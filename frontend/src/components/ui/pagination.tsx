@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button, type ButtonProps } from "@/components/ui/button"
@@ -20,7 +20,7 @@ const PaginationContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ul
     ref={ref}
-    className={cn("flex flex-row items-center gap-1", className)}
+    className={cn("flex flex-row flex-wrap items-center justify-center gap-1 overflow-x-auto", className)}
     {...props}
   />
 ))
@@ -107,6 +107,21 @@ const PaginationLast = ({
 )
 PaginationLast.displayName = "PaginationLast"
 
+const PaginationEllipsis = ({
+  className,
+  ...props
+}: React.ComponentProps<"span">) => (
+  <span
+    aria-hidden
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
+    {...props}
+  >
+    <MoreHorizontal className="h-4 w-4" />
+    <span className="sr-only">Más páginas</span>
+  </span>
+)
+PaginationEllipsis.displayName = "PaginationEllipsis"
+
 export {
   Pagination,
   PaginationContent,
@@ -116,4 +131,5 @@ export {
   PaginationNext,
   PaginationFirst,
   PaginationLast,
+  PaginationEllipsis,
 }

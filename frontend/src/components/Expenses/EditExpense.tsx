@@ -8,6 +8,7 @@ import {
   listOfCategories,
 } from "../../types"
 import useAuth from "../../hooks/useAuth"
+import useHousehold from "@/hooks/useHousehold"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,10 +33,12 @@ interface Props {
   expense: Expense
   categories: listOfCategories
   accounts: listOfAccounts
+  onExpenseMutated?: () => void
 }
 
-export const EditExpense = ({ expense, categories, accounts }: Props) => {
+export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }: Props) => {
   const { auth } = useAuth()
+  const { isLinked, getOwnerName } = useHousehold()
   const axiosPrivate = useAxiosPrivate()
   const id = expense.id
   const [title, setTitle] = useState<string>(expense.title)
@@ -74,7 +77,7 @@ export const EditExpense = ({ expense, categories, accounts }: Props) => {
     }
     console.log(editedExpense)
     try {
-      const response = await axiosPrivate.put(
+      await axiosPrivate.put(
         `/${auth.id}/expenses/${id}`,
         JSON.stringify(editedExpense),
         {
@@ -82,8 +85,8 @@ export const EditExpense = ({ expense, categories, accounts }: Props) => {
           withCredentials: true,
         }
       )
-      console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      setShow(false)
+      onExpenseMutated?.()
     } catch (err) {
       console.log("Error en el componente EditExpenses", err)
     }
@@ -130,7 +133,12 @@ export const EditExpense = ({ expense, categories, accounts }: Props) => {
                   <SelectValue placeholder="Elija la categoría del gasto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category: Category) => (
+                  {categories
+                    .filter(
+                      (category: Category) =>
+                        category.is_enabled || category.id === expense.category_id
+                    )
+                    .map((category: Category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
@@ -174,7 +182,9 @@ export const EditExpense = ({ expense, categories, accounts }: Props) => {
                 <SelectContent>
                   {accounts.map((account: Account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.description}
+                      {isLinked
+                        ? `@${getOwnerName(account.user_id)} - ${account.description}`
+                        : account.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -184,7 +194,7 @@ export const EditExpense = ({ expense, categories, accounts }: Props) => {
               <Button variant="outline" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
-              <Button type="submit" onClick={handleClose}>
+              <Button type="submit">
                 Editar Gasto
               </Button>
             </DialogFooter>

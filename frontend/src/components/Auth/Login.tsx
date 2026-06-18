@@ -52,18 +52,17 @@ export const Login = () => {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username, role')
-        .eq('id', session.user.id)
-        .single()
+      const username =
+        (session.user.user_metadata?.username as string | undefined) ??
+        session.user.email?.split('@')[0] ??
+        email
 
       const id = session.user.id
       setAuth({
         id,
         email: session.user.email ?? email,
-        user: profile?.username ?? session.user.email ?? email,
-        role: profile?.role ?? 1712,
+        user: username,
+        role: 1712,
         accessToken: session.access_token,
       })
 

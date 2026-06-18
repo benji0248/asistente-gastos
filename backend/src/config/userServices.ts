@@ -1,14 +1,15 @@
-import { db } from "../database/database";
-import { Profile } from "./types";
+import { getSupabaseAdmin } from '../lib/supabase'
+import { Profile } from './types'
 
 class userServices {
     static getAllUsers = async () => {
         try {
-            const [result] = await db.query("SELECT * FROM profiles")
-            if (!result) {
+            const { data, error } = await getSupabaseAdmin().from('profiles').select('*')
+            if (error) throw error
+            if (!data) {
                 throw new Error('No se encontraron usuarios')
             }
-            return result;
+            return data
         } catch (err) {
             console.error('Error en el servicio getAllUsers:', err)
         }
@@ -16,11 +17,15 @@ class userServices {
 
     static getUserById = async (userId: string) => {
         try {
-            const [row] = await db.query(`SELECT * FROM profiles WHERE id = ?`, [userId])
-            if (!row) {
+            const { data, error } = await getSupabaseAdmin()
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+            if (error) throw error
+            if (!data) {
                 throw new Error('No se encontro el usuario')
             }
-            return row as Profile[]
+            return data as Profile[]
         } catch (err) {
             console.error('Error en el servicio getUserById', err)
         }
@@ -29,8 +34,11 @@ class userServices {
     static updateOneUser = async (userId: string, updateData: Partial<Profile>) => {
         try {
             const [key, value] = Object.entries(updateData)[0]
-            const query = `UPDATE profiles SET ${key} = ? WHERE id = ?`;
-            await db.query(query, [value, userId])
+            const { error } = await getSupabaseAdmin()
+                .from('profiles')
+                .update({ [key]: value })
+                .eq('id', userId)
+            if (error) throw error
         } catch (err) {
             console.error('Error en el servicio updateOneUser', err)
         }
@@ -38,7 +46,11 @@ class userServices {
 
     static deleteOneUser = async (userId: string) => {
         try {
-            await db.query(`DELETE FROM profiles WHERE id = ?`, [userId]);
+            const { error } = await getSupabaseAdmin()
+                .from('profiles')
+                .delete()
+                .eq('id', userId)
+            if (error) throw error
         } catch (err) {
             console.error('Error en el servicio deleteOneUser', err)
         }

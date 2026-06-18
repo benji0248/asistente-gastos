@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { actualDate } from "../../consts"
 import useAuth from "../../hooks/useAuth"
+import useHousehold from "@/hooks/useHousehold"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Account, Category } from "../../types"
 import { Button } from "@/components/ui/button"
@@ -20,8 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Sparkles } from "lucide-react"
+import type { ReceiptParseResult } from "@/lib/receiptParser"
+import { SectionLoader } from "../layout/SectionLoader"
 
-export const CreateExpense = () => {
+interface CreateExpenseProps {
+  scanResult?: ReceiptParseResult | null
+  onScanConsumed?: () => void
+  onExpenseCreated?: () => void
+}
+
+const confidenceLabel = {
+  high: "Lectura confiable — revisa y confirma.",
+  medium: "Lectura parcial — verifica monto y nombre.",
+  low: "Lectura débil — completa los campos manualmente.",
+}
+
+export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: CreateExpenseProps) => {
   const { auth } = useAuth()
   const [title, setTitle] = useState<string>("")
   const [amount, setAmount] = useState<number>(0)
@@ -31,42 +48,88 @@ export const CreateExpense = () => {
   const [paidMethod, setPaidMethod] = useState<string>("")
   const [paid, setPaid] = useState<boolean>(false)
   const [show, setShow] = useState(false)
+  const [fromScan, setFromScan] = useState(false)
+  const [scanConfidence, setScanConfidence] =
+    useState<ReceiptParseResult["confidence"] | null>(null)
   const [category, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [saving, setSaving] = useState(false)
+  const [optionsLoading, setOptionsLoading] = useState(true)
+  const [pendingScan, setPendingScan] = useState<ReceiptParseResult | null>(null)
   const axiosPrivate = useAxiosPrivate()
-  const handleClose = () => setShow(false)
+  const { isLinked, getOwnerName } = useHousehold()
+
+  const handleClose = () => {
+    setShow(false)
+    setFromScan(false)
+    setScanConfidence(null)
+  }
+
   const handleShow = () => {
     setShow(true)
-    const date = actualDate()
-    setCreatedDate(date)
+    setCreatedDate(actualDate())
+  }
+
+  const applyScanResult = (result: ReceiptParseResult, accountList: Account[]) => {
+    setTitle(result.title)
+    setAmount(result.amount)
+    if (result.categoryId) setType(result.categoryId)
+    setPaid(true)
+    setFromScan(true)
+    setScanConfidence(result.confidence)
+
+    const efectivo = accountList.find((a) =>
+      a.type?.toLowerCase().includes("efectivo")
+    )
+    const defaultAccount = efectivo ?? accountList[0]
+    if (defaultAccount) setPaidMethod(defaultAccount.id)
+
+    setShow(true)
+    setCreatedDate(actualDate())
   }
 
   useEffect(() => {
-    axiosPrivate
-      .get(`/${auth.id}/categories`)
-      .then((response) => {
-        setCategories(response.data)
+    if (!auth?.id) return
+
+    let isMounted = true
+    setOptionsLoading(true)
+
+    Promise.all([
+      axiosPrivate.get(`/${auth.id}/categories?active=true`),
+      axiosPrivate.get(`/${auth.id}/accounts`),
+    ])
+      .then(([categoriesRes, accountsRes]) => {
+        if (!isMounted) return
+        setCategories(categoriesRes.data ?? [])
+        setAccounts(accountsRes.data ?? [])
       })
-      .catch((error) => {
-        console.error("Error fetching categories:", error)
+      .catch((error) => console.error("Error fetching expense options:", error))
+      .finally(() => {
+        if (isMounted) setOptionsLoading(false)
       })
-    axiosPrivate
-      .get(`/${auth.id}/accounts`)
-      .then((response) => {
-        setAccounts(response.data)
-      })
-      .catch((error) => {
-        console.error("Error fetching accounts:", error)
-      })
-  }, [])
+
+    return () => {
+      isMounted = false
+    }
+  }, [auth?.id, axiosPrivate])
+
+  useEffect(() => {
+    if (!scanResult) return
+    setPendingScan(scanResult)
+    onScanConsumed?.()
+  }, [scanResult, onScanConsumed])
+
+  useEffect(() => {
+    if (!pendingScan || accounts.length === 0) return
+    applyScanResult(pendingScan, accounts)
+    setPendingScan(null)
+  }, [pendingScan, accounts])
 
   const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === "true"
-    setPaid(value)
+    setPaid(e.target.value === "true")
   }
 
-  const handleAmountChange = (e: string) => {
-    const value = e
+  const handleAmountChange = (value: string) => {
     if (value === "") {
       setAmount(0)
     } else {
@@ -77,28 +140,34 @@ export const CreateExpense = () => {
   const addNewExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const newExpenseData = {
-      title: title,
-      amount: amount,
+      title,
+      amount,
       payment_date: paidDate,
       is_paid: paid,
       user_id: auth.id,
       category_id: type,
       account_id: paidMethod,
     }
-    console.log(newExpenseData)
+
+    setSaving(true)
     try {
-      const response = await axiosPrivate.post(
-        `/${auth.id}/expenses`,
-        JSON.stringify(newExpenseData),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      )
-      console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      await axiosPrivate.post(`/${auth.id}/expenses`, JSON.stringify(newExpenseData), {
+        headers: { "Content-Type": "application/json" },
+        withCredentials: true,
+      })
+      setTitle("")
+      setAmount(0)
+      setType("")
+      setPaidMethod("")
+      setPaid(false)
+      setFromScan(false)
+      setScanConfidence(null)
+      setShow(false)
+      onExpenseCreated?.()
     } catch (err) {
       console.log("Error en el componente CreateExpenses", err)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -107,12 +176,25 @@ export const CreateExpense = () => {
       <Button variant="outline" onClick={handleShow}>
         Agregar Gasto
       </Button>
-      <Dialog open={show} onOpenChange={setShow}>
+      <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Agrega un nuevo gasto</DialogTitle>
+            <DialogTitle>
+              {fromScan ? "Confirmar gasto escaneado" : "Agrega un nuevo gasto"}
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => addNewExpense(e)} className="space-y-4">
+
+          {fromScan && scanConfidence && (
+            <Alert>
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription>{confidenceLabel[scanConfidence]}</AlertDescription>
+            </Alert>
+          )}
+
+          {optionsLoading ? (
+            <SectionLoader minHeight="min-h-[200px]" />
+          ) : (
+          <form onSubmit={addNewExpense} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Gasto</Label>
               <Input
@@ -130,10 +212,12 @@ export const CreateExpense = () => {
               <Label htmlFor="amount">Monto</Label>
               <Input
                 id="amount"
-                type="text"
+                type="number"
+                step="0.01"
+                min="0"
                 placeholder="Ingrese el monto a pagar"
                 name="amount"
-                value={amount}
+                value={amount || ""}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 required
               />
@@ -189,7 +273,9 @@ export const CreateExpense = () => {
                 <SelectContent>
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.description}
+                      {isLinked
+                        ? `@${getOwnerName(account.user_id)} - ${account.description}`
+                        : account.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -199,11 +285,12 @@ export const CreateExpense = () => {
               <Button variant="outline" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
-              <Button type="submit" onClick={handleClose}>
-                Agregar Gasto
+              <Button type="submit" disabled={saving}>
+                {saving ? "Guardando..." : "Agregar Gasto"}
               </Button>
             </DialogFooter>
           </form>
+          )}
         </DialogContent>
       </Dialog>
     </>

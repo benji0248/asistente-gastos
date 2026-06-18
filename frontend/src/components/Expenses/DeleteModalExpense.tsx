@@ -15,9 +15,10 @@ import { Trash2 } from "lucide-react"
 interface Props {
   id: string
   title: string
+  onExpenseMutated?: () => void
 }
 
-export const DeleteModalExpense = ({ id, title }: Props) => {
+export const DeleteModalExpense = ({ id, title, onExpenseMutated }: Props) => {
   const { auth } = useAuth()
   const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
@@ -32,6 +33,7 @@ export const DeleteModalExpense = ({ id, title }: Props) => {
       await axiosPrivate.delete(`/${auth.id}/expenses/${id}`, {
         withCredentials: true,
       })
+      onExpenseMutated?.()
     } catch (err) {
       console.log("Error en el componente DeleteExpenses", err)
     }

@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "dev": "ts-node-dev --respawn --transpile-only --exit-child src/app.ts",
     "build": "esbuild src/app.ts --bundle --platform=node --target=node20 --outfile=dist/app.js --packages=external --format=cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,13 +17,11 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
-    "nodemon": "^3.1.4",
-    "pg": "^8.13.1"
+    "nodemon": "^3.1.4"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^22.3.0",
-    "@types/pg": "^8.11.10",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4",

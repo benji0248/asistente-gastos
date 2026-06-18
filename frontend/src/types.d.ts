@@ -43,10 +43,12 @@ export interface newCategory{
     user_id: string
 }
 
-export interface Category{
-    id: string
-    name: string
-    user_id: string
+export interface Category {
+  id: string
+  name: string
+  user_id: string
+  is_enabled: boolean
+  is_system: boolean
 }
 
 export interface newAccount{
@@ -67,3 +69,35 @@ export interface Account {
 export type listOfExpenses = Expense[]
 export type listOfCategories = Category[]
 export type listOfAccounts = Account[]
+
+export interface Household {
+    id: string
+    name: string
+    created_by: string
+    created_at: string
+}
+
+export interface HouseholdMember {
+    id: string
+    username: string
+    role: "owner" | "member"
+}
+
+export interface HouseholdInvite {
+    id: string
+    household_id: string
+    invited_by: string
+    invitee_user_id?: string | null
+    invitee_email?: string | null
+    status: "pending" | "accepted" | "rejected" | "cancelled"
+    created_at: string
+    responded_at?: string | null
+    households?: {
+        id: string
+        name: string
+    }
+    profiles?: {
+        id: string
+        username: string
+    }
+}

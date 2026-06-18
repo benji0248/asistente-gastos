@@ -8,12 +8,20 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        sans: ["DM Sans", "system-ui", "sans-serif"],
+        display: ["Outfit", "system-ui", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+      },
+      boxShadow: {
+        soft: "0 2px 20px -4px hsl(240 6% 10% / 0.08)",
+        elevated: "0 8px 32px -8px hsl(240 6% 10% / 0.12)",
+        glow: "0 0 0 1px hsl(240 6% 88% / 0.8), 0 4px 24px -6px hsl(240 6% 10% / 0.1)",
       },
       colors: {
         background: "hsl(var(--background))",

@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
+import { ROLES } from "@/consts"
 
 export type AuthState = {
   user: string
@@ -10,7 +11,7 @@ export type AuthState = {
   id: string
 } | null
 
-interface AuthContextType {
+export interface AuthContextType {
   auth: AuthState
   setAuth: Dispatch<SetStateAction<AuthState>>
   loading: boolean
@@ -18,20 +19,19 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
-async function buildAuthFromSession(session: Session | null): Promise<AuthState> {
+function buildAuthFromSession(session: Session | null): AuthState {
   if (!session) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('username, role')
-    .eq('id', session.user.id)
-    .single()
+  const username =
+    (session.user.user_metadata?.username as string | undefined) ??
+    session.user.email?.split("@")[0] ??
+    ""
 
   return {
     id: session.user.id,
-    user: profile?.username ?? session.user.email ?? '',
-    email: session.user.email ?? '',
-    role: profile?.role ?? 1712,
+    user: username,
+    email: session.user.email ?? "",
+    role: ROLES.user,
     accessToken: session.access_token,
   }
 }
@@ -41,13 +41,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setAuth(await buildAuthFromSession(session))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuth(buildAuthFromSession(session))
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setAuth(await buildAuthFromSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuth(buildAuthFromSession(session))
       setLoading(false)
     })
 

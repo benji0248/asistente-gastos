@@ -1,6 +1,9 @@
 import { listOfAccounts, listOfCategories, type listOfExpenses } from "../../types"
 import { ExpenseTableItems } from "./ExpenseTableItems"
+import { ExpenseCardList } from "./ExpenseCardList"
+import { ExpensePagination } from "./ExpensePagination"
 import { useState } from "react"
+import useHousehold from "@/hooks/useHousehold"
 import {
   Table,
   TableBody,
@@ -8,29 +11,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationFirst,
-  PaginationItem,
-  PaginationLast,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
 
 interface Props {
   expenses: listOfExpenses
   categories: listOfCategories
   accounts: listOfAccounts
+  onExpenseMutated?: () => void
 }
 
-export const ExpenseTable = ({ expenses, categories, accounts }: Props) => {
+export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated }: Props) => {
+  const { isLinked, getOwnerName } = useHousehold()
   const categoryMap = new Map(
     categories.map((category) => [category.id, category.name])
   )
   const accountMap = new Map(
-    accounts.map((account) => [account.id, account.description])
+    accounts.map((account) => [
+      account.id,
+      isLinked
+        ? `@${getOwnerName(account.user_id)} - ${account.description}`
+        : account.description,
+    ])
   )
 
   const [actualPage, setActualPage] = useState<number>(1)
@@ -40,25 +40,37 @@ export const ExpenseTable = ({ expenses, categories, accounts }: Props) => {
   const indexfFirstExpense = indexLastExpense - elementsByPage
   const actualExpenses = expenses.slice(indexfFirstExpense, indexLastExpense)
 
-  const handleChangePage = (numberPage: number) => {
-    setActualPage(numberPage)
-  }
-
   const totalPages = Math.ceil(expenses.length / elementsByPage)
+
+  const sharedProps = {
+    expenses: actualExpenses,
+    categoryMap,
+    accountMap,
+    categories,
+    accounts,
+    showOwner: isLinked,
+    onExpenseMutated,
+  }
 
   return (
     <div className="mt-6 space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Gasto</TableHead>
-            <TableHead>Monto</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead>Método de pago</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {actualExpenses.map((expense) => (
+      <div className="md:hidden">
+        <ExpenseCardList {...sharedProps} />
+      </div>
+
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Gasto</TableHead>
+              <TableHead>Monto</TableHead>
+              {isLinked && <TableHead>Persona</TableHead>}
+              <TableHead>Categoría</TableHead>
+              <TableHead>Método de pago</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {actualExpenses.map((expense) => (
             <ExpenseTableItems
               key={expense.id}
               expense={expense}
@@ -66,52 +78,20 @@ export const ExpenseTable = ({ expenses, categories, accounts }: Props) => {
               accountMap={accountMap}
               categories={categories}
               accounts={accounts}
+              showOwner={isLinked}
+              onExpenseMutated={onExpenseMutated}
             />
-          ))}
-        </TableBody>
-      </Table>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationFirst
-                onClick={() => handleChangePage(1)}
-                disabled={actualPage === 1}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={() => handleChangePage(actualPage - 1)}
-                disabled={actualPage === 1}
-              />
-            </PaginationItem>
-
-            {[...Array(totalPages)].map((_, index) => (
-              <PaginationItem key={index}>
-                <PaginationLink
-                  isActive={index + 1 === actualPage}
-                  onClick={() => handleChangePage(index + 1)}
-                >
-                  {index + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-
-            <PaginationItem>
-              <PaginationNext
-                onClick={() => handleChangePage(actualPage + 1)}
-                disabled={actualPage === totalPages}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLast
-                onClick={() => handleChangePage(totalPages)}
-                disabled={actualPage === totalPages}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <ExpensePagination
+          currentPage={actualPage}
+          totalPages={totalPages}
+          onPageChange={setActualPage}
+        />
       )}
     </div>
   )

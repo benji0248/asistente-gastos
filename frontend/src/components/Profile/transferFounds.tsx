@@ -1,5 +1,6 @@
 import { useState } from "react"
 import useAuth from "../../hooks/useAuth"
+import useHousehold from "@/hooks/useHousehold"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Account, listOfAccounts } from "../../types"
 import { Button } from "@/components/ui/button"
@@ -24,10 +25,16 @@ import { cn } from "@/lib/utils"
 interface Props {
   account: Account
   listOfAccounts: listOfAccounts
+  onAccountsChange?: () => void
 }
 
-export const TransferFounds = ({ account, listOfAccounts }: Props) => {
+export const TransferFounds = ({
+  account,
+  listOfAccounts,
+  onAccountsChange,
+}: Props) => {
   const { auth } = useAuth()
+  const { isLinked, getOwnerName } = useHousehold()
   const account_id = account.id
   const actualBalance = account.balance
   const axiosPrivate = useAxiosPrivate()
@@ -51,7 +58,7 @@ export const TransferFounds = ({ account, listOfAccounts }: Props) => {
     e.preventDefault()
     console.log(amount)
     try {
-      const response = await axiosPrivate.put(
+      await axiosPrivate.put(
         `/${auth.id}/accounts/${account_id}/transfer`,
         JSON.stringify({ accountToTransfer, amount }),
         {
@@ -61,8 +68,8 @@ export const TransferFounds = ({ account, listOfAccounts }: Props) => {
           withCredentials: true,
         }
       )
-      console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      setShow(false)
+      onAccountsChange?.()
     } catch (err) {
       console.log("Error en el componente EditFounds", err)
     }
@@ -124,7 +131,9 @@ export const TransferFounds = ({ account, listOfAccounts }: Props) => {
                 <SelectContent>
                   {listOfAccounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.description}
+                      {isLinked
+                        ? `@${getOwnerName(acc.user_id)} - ${acc.description}`
+                        : acc.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -136,7 +145,6 @@ export const TransferFounds = ({ account, listOfAccounts }: Props) => {
               </Button>
               <Button
                 type="submit"
-                onClick={handleClose}
                 disabled={exceedsBalance}
                 className={cn(exceedsBalance && "pointer-events-none opacity-50")}
               >

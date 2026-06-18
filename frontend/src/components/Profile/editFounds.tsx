@@ -15,9 +15,10 @@ import { Label } from "@/components/ui/label"
 
 interface Props {
   account: Account
+  onAccountsChange?: () => void
 }
 
-export const EditFounds = ({ account }: Props) => {
+export const EditFounds = ({ account, onAccountsChange }: Props) => {
   const { auth } = useAuth()
   const account_id = account.id
   const axiosPrivate = useAxiosPrivate()
@@ -39,7 +40,7 @@ export const EditFounds = ({ account }: Props) => {
   const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      const response = await axiosPrivate.put(
+      await axiosPrivate.put(
         `/${auth.id}/accounts/${account_id}/edit`,
         JSON.stringify({ amount }),
         {
@@ -49,8 +50,8 @@ export const EditFounds = ({ account }: Props) => {
           withCredentials: true,
         }
       )
-      console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      setShow(false)
+      onAccountsChange?.()
     } catch (err) {
       console.log("Error en el componente EditFounds", err)
     }
@@ -85,7 +86,7 @@ export const EditFounds = ({ account }: Props) => {
               <Button variant="outline" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
-              <Button type="submit" onClick={handleClose}>
+              <Button type="submit">
                 Cambiar Fondos
               </Button>
             </DialogFooter>

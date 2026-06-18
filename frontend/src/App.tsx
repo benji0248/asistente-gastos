@@ -1,47 +1,33 @@
 import { Route, Routes } from "react-router-dom"
 import Expenses from "./components/Expenses/Expenses"
-import { PublicNavbar } from "./components/layout/PublicNavbar"
 import { Register } from "./components/Auth/Register"
 import { Login } from "./components/Auth/Login"
 import RequireAuth from "./components/RequireAuth"
 import Profile from "./components/Profile/Profile"
 import Home from "./components/Home/Home"
+import { HomeLogged } from "./components/Home/HomeLogged"
 import PersistLogin from "./components/PersistLogin"
 import { ROLES } from "./consts"
-import { AppShell } from "./components/layout/AppShell"
+import { DashboardLayout } from "./components/layout/DashboardLayout"
 
 function App() {
   return (
-    <>
-      <PublicNavbar />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-        <Route element={<PersistLogin />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/home" element={<Home />} />
-          <Route element={<RequireAuth allowedRoles={[ROLES.user]} />}>
-            <Route
-              path="/:userId/expenses"
-              element={
-                <AppShell>
-                  <Expenses />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/:userId/profile"
-              element={
-                <AppShell>
-                  <Profile />
-                </AppShell>
-              }
-            />
+      <Route element={<PersistLogin />}>
+        <Route path="/" element={<Home />} />
+
+        <Route element={<RequireAuth allowedRoles={[ROLES.user]} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/home" element={<HomeLogged />} />
+            <Route path="/:userId/expenses" element={<Expenses />} />
+            <Route path="/:userId/profile" element={<Profile />} />
           </Route>
         </Route>
-      </Routes>
-    </>
+      </Route>
+    </Routes>
   )
 }
 

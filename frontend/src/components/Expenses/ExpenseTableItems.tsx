@@ -3,8 +3,10 @@ import { EditExpense } from "./EditExpense"
 import { DeleteModalExpense } from "./DeleteModalExpense"
 import { formattedDate } from "../../consts"
 import useAuth from "../../hooks/useAuth"
+import useHousehold from "@/hooks/useHousehold"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Check } from "lucide-react"
 
@@ -14,6 +16,8 @@ interface Props {
   accountMap: Map<string, string>
   categories: listOfCategories
   accounts: listOfAccounts
+  showOwner?: boolean
+  onExpenseMutated?: () => void
 }
 
 export const ExpenseTableItems = ({
@@ -22,8 +26,11 @@ export const ExpenseTableItems = ({
   accountMap,
   categories,
   accounts,
+  showOwner = false,
+  onExpenseMutated,
 }: Props) => {
   const { auth } = useAuth()
+  const { getOwnerName } = useHousehold()
   const axiosPrivate = useAxiosPrivate()
   const categoryName = categoryMap.get(expense.category_id) || "Sin Categoría"
   const accountName = accountMap.get(expense.account_id) || "Sin tipo"
@@ -31,6 +38,7 @@ export const ExpenseTableItems = ({
   const handleComplete = async () => {
     try {
       await axiosPrivate.put(`/${auth.id}/expenses/${expense.id}/complete`)
+      onExpenseMutated?.()
     } catch (err) {
       console.log("Error en el fetching handleComplete", err)
     }
@@ -41,15 +49,25 @@ export const ExpenseTableItems = ({
       <TableCell>
         <div className="flex items-center gap-1">
           <span className="capitalize">{expense.title}</span>
-          <DeleteModalExpense id={expense.id} title={expense.title} />
+          <DeleteModalExpense
+            id={expense.id}
+            title={expense.title}
+            onExpenseMutated={onExpenseMutated}
+          />
           <EditExpense
             expense={expense}
             categories={categories}
             accounts={accounts}
+            onExpenseMutated={onExpenseMutated}
           />
         </div>
       </TableCell>
       <TableCell>${expense.amount}</TableCell>
+      {showOwner && (
+        <TableCell>
+          <Badge variant="secondary">@{getOwnerName(expense.user_id)}</Badge>
+        </TableCell>
+      )}
       <TableCell className="capitalize">{categoryName}</TableCell>
       <TableCell>
         <div className="flex flex-wrap items-center gap-2 capitalize">

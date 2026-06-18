@@ -28,7 +28,7 @@ function FieldStatus({
   showInvalid: boolean
 }) {
   if (valid) {
-    return <Check className="h-4 w-4 text-emerald-500" />
+    return <Check className="h-4 w-4 text-foreground" />
   }
   if (showInvalid) {
     return <X className="h-4 w-4 text-destructive" />
@@ -114,11 +114,11 @@ export const Register = () => {
 
   if (success) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md text-center shadow-lg">
           <CardHeader className="pb-4">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-              <CheckCircle2 className="h-8 w-8 text-primary" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <CheckCircle2 className="h-8 w-8 text-foreground" />
             </div>
             <CardTitle className="text-2xl">¡Registro exitoso!</CardTitle>
             <CardDescription className="text-base">

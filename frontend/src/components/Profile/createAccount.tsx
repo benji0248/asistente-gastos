@@ -1,5 +1,6 @@
 import { useState } from "react"
 import useAuth from "../../hooks/useAuth"
+import useHousehold from "@/hooks/useHousehold"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,13 +20,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-function CreateAccount() {
+function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) {
   const { auth } = useAuth()
   const [show, setShow] = useState<boolean>(false)
   const [type, setType] = useState<string>("")
   const [balance, setBalance] = useState<string>("")
   const [description, setDescription] = useState<string>("")
+  const [ownerUserId, setOwnerUserId] = useState<string>("")
   const axiosPrivate = useAxiosPrivate()
+  const { members, isLinked } = useHousehold()
+  const ownerOptions = members.length
+    ? members
+    : auth?.id
+      ? [{ id: auth.id, username: auth.user || "Yo", role: "member" as const }]
+      : []
   const handleClose = () => setShow(false)
   const handleShow = () => setShow(true)
 
@@ -36,9 +44,10 @@ function CreateAccount() {
       type: type,
       balance: balance,
       description: description,
+      owner_user_id: ownerUserId || auth.id,
     }
     try {
-      const response = await axiosPrivate.post(
+      await axiosPrivate.post(
         `/${auth.id}/accounts`,
         JSON.stringify(newAccountData),
         {
@@ -46,8 +55,12 @@ function CreateAccount() {
           withCredentials: true,
         }
       )
-      console.log(JSON.stringify(response.data))
-      console.log(JSON.stringify(response))
+      setType("")
+      setBalance("")
+      setDescription("")
+      setOwnerUserId("")
+      setShow(false)
+      onAccountsChange?.()
     } catch (err) {
       console.log("Error en el componente CreateAccount", err)
     }
@@ -78,6 +91,27 @@ function CreateAccount() {
                 </SelectContent>
               </Select>
             </div>
+            {isLinked && (
+              <div className="space-y-2">
+                <Label>Pertenece a</Label>
+                <Select
+                  value={ownerUserId || auth.id}
+                  onValueChange={setOwnerUserId}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Elegí el dueño de la cuenta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ownerOptions.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        @{member.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="account-description">Cuenta</Label>
               <Input
@@ -106,7 +140,7 @@ function CreateAccount() {
               <Button variant="outline" type="button" onClick={handleClose}>
                 Cerrar
               </Button>
-              <Button type="submit" onClick={handleClose}>
+              <Button type="submit">
                 Agregar fuente de fondos
               </Button>
             </DialogFooter>

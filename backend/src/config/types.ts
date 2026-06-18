@@ -5,6 +5,43 @@ export interface Profile {
   role: number
 }
 
+export interface Household {
+  id: string
+  name: string
+  created_by: string
+  created_at: Date
+}
+
+export interface HouseholdMember {
+  household_id: string
+  user_id: string
+  role: 'owner' | 'member'
+  status: 'accepted' | 'left'
+  joined_at: Date
+  profile?: Profile
+}
+
+export interface HouseholdInvite {
+  id: string
+  household_id: string
+  invited_by: string
+  invitee_user_id?: string | null
+  invitee_email?: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  created_at: Date
+  responded_at?: Date | null
+}
+
+export interface HouseholdContext {
+  householdId?: string
+  members: Array<{
+    id: string
+    username: string
+    role: 'owner' | 'member'
+  }>
+  visibleUserIds: string[]
+}
+
 export interface newExpenses {
   title: string
   amount: number
@@ -35,9 +72,12 @@ export interface newAccount {
   type: string
   balance: number
   description: string
+  owner_user_id?: string
 }
 
 export interface Account {
+  id: string
+  user_id: string
   type: string
   balance: number
   description: string

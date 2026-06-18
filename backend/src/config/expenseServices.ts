@@ -1,96 +1,179 @@
-import { db } from "../database/database";
-import accountsServices from "./accountsServices";
-import { newExpenses, Expenses } from "./types";
+import { getSupabaseAdmin } from '../lib/supabase'
+import accountsServices from './accountsServices'
+import { newExpenses, Expenses } from './types'
+
+function monthDateRange(month: number, year: number) {
+    const start = new Date(year, month - 1, 1).toISOString()
+    const end = new Date(year, month, 0, 23, 59, 59, 999).toISOString()
+    return { start, end }
+}
 
 class expenseServices{
-    static getAllExpenses = async (userId: string) => {
+    private static normalizeUserIds = (userIds: string | string[]) => {
+        return Array.isArray(userIds) ? userIds : [userIds]
+    }
+
+    static getAllExpenses = async (userIds: string | string[]) => {
         try {
-            const [result] = await db.query("SELECT * FROM expenses WHERE user_id = ?", [userId])
-            return result as Expenses[]
+            const { data, error } = await getSupabaseAdmin()
+                .from('expenses')
+                .select('*')
+                .in('user_id', this.normalizeUserIds(userIds))
+            if (error) throw error
+            return data as Expenses[]
         } catch (err) {
             console.error('Error en el servicio getAllExpenses', err)
+            throw err
         }
     }
 
-    static getOneExpense = async (expenseId: string): Promise<Expenses | undefined> => {
+    static getOneExpense = async (expenseId: string, visibleUserIds?: string[]): Promise<Expenses | undefined> => {
         try {
-            const [result] = await db.query<Expenses[]>(`SELECT * FROM expenses WHERE id = ?`, [expenseId])
-            return result[0] as Expenses       
+            let query = getSupabaseAdmin()
+                .from('expenses')
+                .select('*')
+                .eq('id', expenseId)
+            if (visibleUserIds?.length) {
+                query = query.in('user_id', visibleUserIds)
+            }
+            const { data, error } = await query.maybeSingle()
+            if (error) throw error
+            return data as Expenses | undefined
         } catch(err) {
             console.error('Error en el servicio getOneExpense', err)
+            throw err
         }
     }
 
-    static getExpensesByMonth = async (month:any, year:any) => {
+    static getExpensesByMonth = async (userIds: string | string[], month: number, year: number) => {
         try {
-            const [expenses] = await db.query<Expenses[]>(
-                `SELECT * FROM expenses WHERE EXTRACT(MONTH FROM created_at) = ? AND EXTRACT(YEAR FROM created_at) = ?`,
-                [month, year]
-            )
-            return expenses as Expenses[]
+            const { start, end } = monthDateRange(month, year)
+            const { data, error } = await getSupabaseAdmin()
+                .from('expenses')
+                .select('*')
+                .in('user_id', this.normalizeUserIds(userIds))
+                .gte('created_at', start)
+                .lte('created_at', end)
+            if (error) throw error
+            return data as Expenses[]
         } catch (err) {
             console.log('Error en el servicio getExpensesByMonth', err)
+            throw err
         }
     }
 
-    static createOneExpense = async (userId: string, dataExpense: newExpenses) => {
-
+    static createOneExpense = async (userId: string, dataExpense: newExpenses, visibleUserIds: string[]) => {
         if (dataExpense.is_paid === true) {
-            dataExpense.payment_date = new Date();
+            dataExpense.payment_date = new Date()
         }
         try {
-            await db.query(`
-                INSERT INTO expenses (title, amount, created_at, payment_date, is_paid, user_id, category_id, account_id)
-                VALUES(?,?, now(),?,?,?,?,?)`, [dataExpense.title, dataExpense.amount, dataExpense.payment_date, dataExpense.is_paid, userId, dataExpense.category_id, dataExpense.account_id])
+            const account = await accountsServices.getOneAccount(dataExpense.account_id, visibleUserIds)
+            if (!account) throw new Error('La cuenta no pertenece al hogar')
+            const { error } = await getSupabaseAdmin()
+                .from('expenses')
+                .insert({
+                    title: dataExpense.title,
+                    amount: dataExpense.amount,
+                    payment_date: dataExpense.payment_date,
+                    is_paid: dataExpense.is_paid,
+                    user_id: userId,
+                    category_id: dataExpense.category_id,
+                    account_id: dataExpense.account_id,
+                })
+            if (error) throw error
             if (dataExpense.is_paid === true) {
-                await accountsServices.updateBalance(dataExpense.account_id, dataExpense.amount)
+                await accountsServices.updateBalance(dataExpense.account_id, dataExpense.amount, visibleUserIds)
             }
         } catch (err) {
             console.error('Error en el servicio createOneExpense', err)
+            throw err
         }
     }
 
-    static updateOneExpense = async (expenseId: string, updateData: Expenses) => {
-        console.log(updateData)
+    static updateOneExpense = async (expenseId: string, updateData: Expenses, visibleUserIds: string[]) => {
         try {
-            await db.query(`
-                    UPDATE expenses
-                    SET title = ?, amount = ?, is_paid = ?, category_id = ?, account_id = ? WHERE id = ?`,
-                    [updateData.title, updateData.amount, updateData.is_paid, updateData.category_id, updateData.account_id, expenseId]);
+            const expense = await this.getOneExpense(expenseId, visibleUserIds)
+            if (!expense) throw new Error('El gasto no pertenece al hogar')
+            const account = await accountsServices.getOneAccount(updateData.account_id, visibleUserIds)
+            if (!account) throw new Error('La cuenta no pertenece al hogar')
+            let query = getSupabaseAdmin()
+                .from('expenses')
+                .update({
+                    title: updateData.title,
+                    amount: updateData.amount,
+                    is_paid: updateData.is_paid,
+                    category_id: updateData.category_id,
+                    account_id: updateData.account_id,
+                })
+                .eq('id', expenseId)
+                .in('user_id', visibleUserIds)
+            const { error } = await query
+            if (error) throw error
         } catch(err) {
             console.error('Error en el servicio updateOneExpense', err)
+            throw err
         }
     }
 
-    static deleteOneExpense = async (expenseId: string) => {
+    static deleteOneExpense = async (expenseId: string, visibleUserIds: string[]) => {
         try{
-            await db.query(`DELETE FROM expenses WHERE id = ?`, [expenseId])
+            const { error } = await getSupabaseAdmin()
+                .from('expenses')
+                .delete()
+                .eq('id', expenseId)
+                .in('user_id', visibleUserIds)
+            if (error) throw error
         }catch(err){
-            console.error('Error en el servicio deleteOneExpense')
+            console.error('Error en el servicio deleteOneExpense', err)
+            throw err
         }
     }
 
-    static completePaid = async (expenseId: string) => {
-        const expense = await this.getOneExpense(expenseId)
+    static completePaid = async (expenseId: string, visibleUserIds: string[]) => {
+        const expense = await this.getOneExpense(expenseId, visibleUserIds)
         try {
             if (expense) {
-                await db.query(`UPDATE expenses SET is_paid = ?, payment_date = NOW() WHERE id = ?`, [true, expenseId])
-                await accountsServices.updateBalance(expense.account_id, expense.amount)
+                const { error } = await getSupabaseAdmin()
+                    .from('expenses')
+                    .update({ is_paid: true, payment_date: new Date().toISOString() })
+                    .eq('id', expenseId)
+                if (error) throw error
+                await accountsServices.updateBalance(expense.account_id, expense.amount, visibleUserIds)
             }
         } catch (err) {
             console.error('Error en el servicio de completePaid', err)
+            throw err
         }
     }
 
-    static getAvailableMonths = async () => {
+    static getAvailableMonths = async (userIds: string | string[]) => {
         try {
-            const [result] = await db.query(
-                `SELECT DISTINCT EXTRACT(MONTH FROM created_at)::int AS month, EXTRACT(YEAR FROM created_at)::int AS year FROM expenses WHERE created_at IS NOT NULL ORDER BY year DESC, month DESC`
-            );
-            console.log(result)
-            return result as { month: number;  year: number }[]
+            const { data, error } = await getSupabaseAdmin()
+                .from('expenses')
+                .select('created_at')
+                .in('user_id', this.normalizeUserIds(userIds))
+                .not('created_at', 'is', null)
+            if (error) throw error
+
+            const seen = new Set<string>()
+            const months: { month: number; year: number }[] = []
+
+            for (const row of data ?? []) {
+                const date = new Date(row.created_at)
+                const month = date.getMonth() + 1
+                const year = date.getFullYear()
+                const key = `${year}-${month}`
+                if (!seen.has(key)) {
+                    seen.add(key)
+                    months.push({ month, year })
+                }
+            }
+
+            months.sort((a, b) => b.year - a.year || b.month - a.month)
+            return months
         } catch (err) {
             console.log('Error en el servicio getAvailableMonths', err)
+            throw err
         }
     }
 }

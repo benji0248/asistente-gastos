@@ -11,7 +11,7 @@ export function PublicPageShell({
   showFooter = true,
 }: PublicPageShellProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <PublicNavbar />
       <main className="flex-1">{children}</main>
       {showFooter && (
@@ -24,13 +24,13 @@ export function PublicPageShell({
               <div className="flex gap-6 text-sm">
                 <a
                   href="/login"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Iniciar sesión
                 </a>
                 <a
                   href="/register"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Registrarse
                 </a>

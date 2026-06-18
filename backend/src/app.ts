@@ -5,6 +5,7 @@ import userRoutes from './routes/users'
 import expensesRoutes from './routes/expenses'
 import categoriesRoutes from './routes/categories'
 import accountsRoutes from './routes/accounts'
+import householdRoutes from './routes/household'
 import { verifyJWT } from './controllers/verifyJWT'
 import { verifyOwnership } from './middlewares/verifyOwnership'
 
@@ -40,9 +41,9 @@ api.get('/', (_req, res) => {
 
 api.use(verifyJWT)
 api.use('/users', userRoutes)
+api.use('/household', householdRoutes)
 api.use('/:userId/expenses', verifyOwnership, expensesRoutes)
 api.use('/:userId/categories', verifyOwnership, categoriesRoutes)
-api.use('/accounts', accountsRoutes)
 api.use('/:userId/accounts', verifyOwnership, accountsRoutes)
 
 app.use('/api', api)
@@ -60,7 +61,15 @@ export default app
 
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3000
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
   })
+
+  const shutdown = () => {
+    server.close(() => process.exit(0))
+    setTimeout(() => process.exit(0), 1000).unref()
+  }
+
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
 }

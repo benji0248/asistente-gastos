@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 240 6% 97%;
+    --foreground: 240 8% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 8% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 160 84% 39%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 160 60% 95%;
-    --accent-foreground: 160 84% 25%;
-    --destructive: 0 84% 60%;
+    --popover-foreground: 240 8% 8%;
+    --primary: 240 8% 8%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 6% 93%;
+    --secondary-foreground: 240 8% 8%;
+    --muted: 240 6% 93%;
+    --muted-foreground: 240 4% 44%;
+    --accent: 240 6% 91%;
+    --accent-foreground: 240 8% 8%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 160 84% 39%;
-    --radius: 0.625rem;
-    --chart-1: 160 84% 39%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 240 8% 8%;
+    --radius: 0.875rem;
+    --chart-1: 240 8% 8%;
+    --chart-2: 240 4% 44%;
+    --chart-3: 240 5% 65%;
+    --chart-4: 240 5% 80%;
+    --chart-5: 240 6% 93%;
   }
 }
 
@@ -38,5 +38,31 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer utilities {
+  .mesh-bg {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 80% 60% at 10% -10%, hsl(240 6% 88% / 0.6), transparent),
+      radial-gradient(ellipse 60% 50% at 90% 0%, hsl(240 6% 90% / 0.5), transparent),
+      radial-gradient(ellipse 50% 40% at 50% 100%, hsl(240 6% 92% / 0.4), transparent);
+  }
+
+  .dot-grid {
+    background-image: radial-gradient(hsl(240 6% 82% / 0.35) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .glass-panel {
+    @apply bg-card/70 backdrop-blur-xl border-border/50;
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 }

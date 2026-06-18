@@ -2,15 +2,18 @@ import { Category, listOfExpenses } from "../../types"
 import { FilterExpenses } from "./FilterExpenses"
 import { sumatoria, sumatoriaPendientes } from "../../consts"
 import { CreateExpense } from "./CreateExpense"
+import { ScanReceipt } from "./ScanReceipt"
 import CreateCategory from "./CreateCategory"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import type { ReceiptParseResult } from "@/lib/receiptParser"
 import dayjs from "dayjs"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
-import useAuth from "../../hooks/useAuth"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { PageHeader } from "@/components/layout/PageHeader"
 import { cn } from "@/lib/utils"
+import { monthKey, type MonthYear } from "@/lib/monthUtils"
 
 interface Props {
   completedCount: number
@@ -18,9 +21,14 @@ interface Props {
   onClearCompleted: () => void
   handleFilterChange: (category_id: string | undefined) => void
   handlePaymentFilter: (key: "all" | "paid" | "unpaid") => void
-  onMonthSelect: (month: string, year: string) => void
+  onMonthSelect: (month: number, year: number) => void
+  onExpenseMutated?: (options?: { preferCurrentMonth?: boolean }) => void
+  onCategoryCreated?: () => void
   expenses: listOfExpenses
   categories: Category[]
+  availableMonths: MonthYear[]
+  selectedMonth: number | null
+  selectedYear: number | null
 }
 
 export const ExpenseHeader = ({
@@ -30,51 +38,37 @@ export const ExpenseHeader = ({
   handlePaymentFilter,
   expenses,
   categories,
+  availableMonths,
+  selectedMonth,
+  selectedYear,
   onMonthSelect,
+  onExpenseMutated,
+  onCategoryCreated,
 }: Props) => {
-  const [availableMonths, setAvailableMonths] = useState<
-    { month: string; year: string }[]
-  >([])
-  const [selectedMonthKey, setSelectedMonthKey] = useState("")
-  const axiosPrivate = useAxiosPrivate()
-  const { auth } = useAuth()
+  const [scanResult, setScanResult] = useState<ReceiptParseResult | null>(null)
 
-  useEffect(() => {
-    const fetchAvailableMonths = async () => {
-      try {
-        const response = await axiosPrivate.get(
-          `/${auth.id}/expenses/available-months`
-        )
-        setAvailableMonths(response.data)
+  const selectedMonthKey =
+    selectedMonth !== null && selectedYear !== null
+      ? monthKey(selectedMonth, selectedYear)
+      : ""
 
-        const currentMonth = dayjs().format("MM")
-        const currentYear = dayjs().format("YYYY")
+  const monthButtons =
+    availableMonths.length > 0
+      ? availableMonths
+      : selectedMonth !== null && selectedYear !== null
+        ? [{ month: selectedMonth, year: selectedYear }]
+        : []
 
-        const currentMonthExists = response.data.find(
-          (item: { month: string; year: string }) =>
-            item.month === currentMonth && item.year === currentYear
-        )
-
-        if (currentMonthExists) {
-          onMonthSelect(currentMonth, currentYear)
-          setSelectedMonthKey(`${currentMonth}/${currentYear}`)
-        } else if (response.data.length > 0) {
-          onMonthSelect(response.data[0].month, response.data[0].year)
-          setSelectedMonthKey(
-            `${response.data[0].month}/${response.data[0].year}`
-          )
-        }
-      } catch (error) {
-        console.error("Error al obtener los meses disponibles", error)
-      }
-    }
-
-    fetchAvailableMonths()
-  }, [])
+  const monthLabel = selectedMonthKey
+    ? dayjs()
+        .month((selectedMonth ?? 1) - 1)
+        .year(selectedYear ?? dayjs().year())
+        .format("MMMM YYYY")
+    : "Selecciona un mes"
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-semibold tracking-tight">Gastos del mes</h2>
+      <PageHeader title="Gastos" description={monthLabel} />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Tabs
@@ -83,31 +77,31 @@ export const ExpenseHeader = ({
             handlePaymentFilter(key as "all" | "paid" | "unpaid")
           }
         >
-          <TabsList>
+          <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="unpaid" className="gap-2">
-              Gastos pendientes
-              <Badge variant="destructive">{completedCount}</Badge>
+              Pendientes
+              {completedCount > 0 && (
+                <Badge variant="destructive">{completedCount}</Badge>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="paid">Gastos pagados</TabsTrigger>
+            <TabsTrigger value="paid">Pagados</TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex flex-wrap gap-2">
-          {availableMonths.map(({ month, year }) => {
-            const key = `${month}/${year}`
+          {monthButtons.map(({ month, year }) => {
+            const key = monthKey(month, year)
             return (
               <Button
                 key={key}
                 variant={selectedMonthKey === key ? "default" : "outline"}
                 size="sm"
                 className={cn(
-                  selectedMonthKey === key && "shadow-sm"
+                  "rounded-xl",
+                  selectedMonthKey === key && "shadow-soft"
                 )}
-                onClick={() => {
-                  setSelectedMonthKey(key)
-                  onMonthSelect(month, year)
-                }}
+                onClick={() => onMonthSelect(month, year)}
               >
                 {key}
               </Button>
@@ -116,24 +110,39 @@ export const ExpenseHeader = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
+      <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 ring-1 ring-border/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between text-sm">
         <p>
-          Total de gastos sin pagar:{" "}
+          Sin pagar:{" "}
           <span className="font-semibold text-destructive">
             ${sumatoriaPendientes(expenses)}
           </span>
         </p>
         <p>
-          Total de gastos del mes:{" "}
-          <span className="font-semibold text-primary">
+          Total del mes:{" "}
+          <span className="font-semibold text-foreground">
             ${sumatoria(expenses)}
           </span>
         </p>
       </div>
 
+      <Separator />
+
       <div className="flex flex-wrap gap-2">
-        <CreateExpense />
-        <CreateCategory />
+        <ScanReceipt
+          categories={categories}
+          onParsed={setScanResult}
+          onExpenseCreated={() =>
+            onExpenseMutated?.({ preferCurrentMonth: true })
+          }
+        />
+        <CreateExpense
+          scanResult={scanResult}
+          onScanConsumed={() => setScanResult(null)}
+          onExpenseCreated={() =>
+            onExpenseMutated?.({ preferCurrentMonth: true })
+          }
+        />
+        <CreateCategory onCreated={onCategoryCreated} />
       </div>
 
       <FilterExpenses

@@ -1,4 +1,4 @@
-import { Expense, listOfAccounts, listOfExpenses } from "./types";
+import { listOfAccounts, listOfExpenses } from "./types";
 
 
 export const ROLES = {

@@ -1,19 +1,19 @@
+import { Navigate } from "react-router-dom"
 import useAuth from "../../hooks/useAuth"
-import { AppShell } from "../layout/AppShell"
-import { HomeLogged } from "./HomeLogged"
 import HomeNoLog from "./HomeNoLog"
+import { PublicNavbar } from "../layout/PublicNavbar"
 
 const Home = () => {
   const { auth } = useAuth()
+
+  if (auth?.id) {
+    return <Navigate to="/home" replace />
+  }
+
   return (
     <>
-      {auth?.id ? (
-        <AppShell>
-          <HomeLogged />
-        </AppShell>
-      ) : (
-        <HomeNoLog />
-      )}
+      <PublicNavbar />
+      <HomeNoLog />
     </>
   )
 }
