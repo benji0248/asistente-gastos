@@ -104,27 +104,29 @@ export const ExpenseHeader = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <div className="inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40">
-          <span className="text-muted-foreground">Pagado</span>
-          <Badge variant="secondary" className="rounded-lg font-semibold tabular-nums">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-1 rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border/40">
+          <span className="text-xs text-muted-foreground">Pagado</span>
+          <span className="truncate text-sm font-semibold tabular-nums">
             ${formatMoney(paidTotal)}
-          </Badge>
+          </span>
         </div>
-        <div className="inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40">
-          <span className="text-muted-foreground">Sin pagar</span>
-          <Badge
-            variant={pendingTotal > 0 ? "destructive" : "secondary"}
-            className="rounded-lg font-semibold tabular-nums"
+        <div className="flex min-w-0 flex-col gap-1 rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border/40">
+          <span className="text-xs text-muted-foreground">Sin pagar</span>
+          <span
+            className={[
+              "truncate text-sm font-semibold tabular-nums",
+              pendingTotal > 0 ? "text-destructive" : "text-foreground",
+            ].join(" ")}
           >
             ${formatMoney(pendingTotal)}
-          </Badge>
+          </span>
         </div>
-        <div className="col-span-2 inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40 sm:col-span-1">
-          <span className="text-muted-foreground">Total del mes</span>
-          <Badge variant="outline" className="rounded-lg font-semibold tabular-nums">
+        <div className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 rounded-xl bg-muted/40 px-3 py-3 ring-1 ring-border/40 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1 sm:py-2.5">
+          <span className="shrink-0 text-sm text-muted-foreground">Total del mes</span>
+          <span className="min-w-0 truncate text-right text-xl font-bold tabular-nums sm:text-left sm:text-sm sm:font-semibold">
             ${formatMoney(monthTotal)}
-          </Badge>
+          </span>
         </div>
       </div>
 
