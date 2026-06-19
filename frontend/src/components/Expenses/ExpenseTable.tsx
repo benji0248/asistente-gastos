@@ -1,8 +1,7 @@
-import { listOfAccounts, listOfCategories, type listOfExpenses } from "../../types"
+import { listOfAccounts, listOfCategories, listOfExpenses } from "../../types"
 import { ExpenseTableItems } from "./ExpenseTableItems"
 import { ExpenseCardList } from "./ExpenseCardList"
 import { ExpensePagination } from "./ExpensePagination"
-import { useState } from "react"
 import useHousehold from "@/hooks/useHousehold"
 import {
   Table,
@@ -16,10 +15,21 @@ interface Props {
   expenses: listOfExpenses
   categories: listOfCategories
   accounts: listOfAccounts
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
   onExpenseMutated?: () => void
 }
 
-export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated }: Props) => {
+export const ExpenseTable = ({
+  expenses,
+  categories,
+  accounts,
+  currentPage,
+  totalPages,
+  onPageChange,
+  onExpenseMutated,
+}: Props) => {
   const { isLinked, getOwnerName } = useHousehold()
   const categoryMap = new Map(
     categories.map((category) => [category.id, category.name])
@@ -33,17 +43,8 @@ export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated 
     ])
   )
 
-  const [actualPage, setActualPage] = useState<number>(1)
-  const [elementsByPage] = useState<number>(15)
-
-  const indexLastExpense = actualPage * elementsByPage
-  const indexfFirstExpense = indexLastExpense - elementsByPage
-  const actualExpenses = expenses.slice(indexfFirstExpense, indexLastExpense)
-
-  const totalPages = Math.ceil(expenses.length / elementsByPage)
-
   const sharedProps = {
-    expenses: actualExpenses,
+    expenses,
     categoryMap,
     accountMap,
     categories,
@@ -70,7 +71,7 @@ export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {actualExpenses.map((expense) => (
+            {expenses.map((expense) => (
             <ExpenseTableItems
               key={expense.id}
               expense={expense}
@@ -88,9 +89,9 @@ export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated 
 
       {totalPages > 1 && (
         <ExpensePagination
-          currentPage={actualPage}
+          currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={setActualPage}
+          onPageChange={onPageChange}
         />
       )}
     </div>

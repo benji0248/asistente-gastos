@@ -1,6 +1,12 @@
 import { getSupabaseAdmin } from '../lib/supabase'
 import accountsServices from './accountsServices'
-import { newExpenses, Expenses } from './types'
+import {
+    newExpenses,
+    Expenses,
+    ExpensePaymentFilter,
+    ExpensesMonthSummary,
+    PaginatedExpenses,
+} from './types'
 
 type AccountAccessContext = {
     visibleUserIds?: string[]
@@ -51,17 +57,88 @@ class expenseServices{
         }
     }
 
-    static getExpensesByMonth = async (userIds: string | string[], month: number, year: number) => {
+    private static getExpensesMonthSummary = async (
+        userIds: string[],
+        start: string,
+        end: string
+    ): Promise<ExpensesMonthSummary> => {
+        const { data, error } = await getSupabaseAdmin()
+            .from('expenses')
+            .select('amount, amount_paid, is_paid')
+            .in('user_id', userIds)
+            .gte('created_at', start)
+            .lte('created_at', end)
+        if (error) throw error
+
+        let pendingCount = 0
+        let paidTotal = 0
+        let pendingTotal = 0
+
+        for (const row of data ?? []) {
+            const amount = Number(row.amount)
+            const amountPaid = Number(row.amount_paid ?? 0)
+            if (row.is_paid) {
+                paidTotal += amount
+            } else {
+                pendingCount++
+                paidTotal += amountPaid
+                pendingTotal += Math.max(0, amount - amountPaid)
+            }
+        }
+
+        return {
+            pendingCount,
+            paidTotal,
+            pendingTotal,
+            monthTotal: paidTotal + pendingTotal,
+        }
+    }
+
+    static getExpensesByMonth = async (
+        userIds: string | string[],
+        month: number,
+        year: number,
+        options: { page?: number; limit?: number; payment?: ExpensePaymentFilter } = {}
+    ): Promise<PaginatedExpenses> => {
         try {
+            const page = Math.max(1, options.page ?? 1)
+            const limit = Math.min(100, Math.max(1, options.limit ?? 10))
+            const payment = options.payment ?? 'all'
+            const from = (page - 1) * limit
+            const to = from + limit - 1
             const { start, end } = monthDateRange(month, year)
-            const { data, error } = await getSupabaseAdmin()
+            const normalizedUserIds = this.normalizeUserIds(userIds)
+
+            const summary = await this.getExpensesMonthSummary(normalizedUserIds, start, end)
+
+            let query = getSupabaseAdmin()
                 .from('expenses')
-                .select('*')
-                .in('user_id', this.normalizeUserIds(userIds))
+                .select('*', { count: 'exact' })
+                .in('user_id', normalizedUserIds)
                 .gte('created_at', start)
                 .lte('created_at', end)
+
+            if (payment === 'paid') query = query.eq('is_paid', true)
+            if (payment === 'unpaid') query = query.eq('is_paid', false)
+
+            query = query
+                .order('is_paid', { ascending: true })
+                .order('payment_date', { ascending: false, nullsFirst: false })
+
+            const { data, error, count } = await query.range(from, to)
             if (error) throw error
-            return data as Expenses[]
+
+            const total = count ?? 0
+            return {
+                data: (data ?? []) as Expenses[],
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+                },
+                summary,
+            }
         } catch (err) {
             console.log('Error en el servicio getExpensesByMonth', err)
             throw err

@@ -67,6 +67,26 @@ export interface Expenses {
   account_id: string
 }
 
+export type ExpensePaymentFilter = 'all' | 'paid' | 'unpaid'
+
+export interface ExpensesMonthSummary {
+  pendingCount: number
+  paidTotal: number
+  pendingTotal: number
+  monthTotal: number
+}
+
+export interface PaginatedExpenses {
+  data: Expenses[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  summary: ExpensesMonthSummary
+}
+
 export interface newCategory {
   name: string
 }

@@ -1,7 +1,7 @@
 import  expenseServices  from "../config/expenseServices";
 import householdRecurringExpenseServices from "../config/householdRecurringExpenseServices";
 import { Request, Response } from "express";
-import { Expenses, newExpenses } from "../config/types";
+import { Expenses, ExpensePaymentFilter, newExpenses } from "../config/types";
 
 class expenseControllers{
     private static visibleUserIds = (req: Request) => req.visibleUserIds ?? (req.userId ? [req.userId] : [])
@@ -34,10 +34,23 @@ class expenseControllers{
     static getExpensesByDate = async (req: Request, res: Response) => {
         const month = Number(req.params.month)
         const year = Number(req.params.year)
+        const page = Math.max(1, Number(req.query.page) || 1)
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10))
+        const payment = String(req.query.payment ?? 'all') as ExpensePaymentFilter
+
+        if (!['all', 'paid', 'unpaid'].includes(payment)) {
+            return res.status(400).json({ message: 'Filtro de pago inválido' })
+        }
+
         try {
             await this.ensureHouseholdRecurringExpenses(req)
-            const expenses = await expenseServices.getExpensesByMonth(this.visibleUserIds(req), month, year)
-            res.status(200).json(expenses ?? [])
+            const result = await expenseServices.getExpensesByMonth(
+                this.visibleUserIds(req),
+                month,
+                year,
+                { page, limit, payment }
+            )
+            res.status(200).json(result)
         } catch (err) {
             console.log('Error en el controlador getExpensesByDate', err)
             res.status(500).json({ message: 'Error al obtener gastos' })

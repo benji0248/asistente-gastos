@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -199,67 +198,74 @@ export function HouseholdRecurringExpenses() {
             Todavía no hay gastos del hogar. Tocá &quot;Agregar gasto&quot; para crear uno.
           </p>
         ) : (
-          <div className="space-y-3">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-3 rounded-xl border border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0 space-y-1">
-                  <p className="font-medium capitalize">{item.title}</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">
-                      {item.amount_type === "fixed" ? "Fijo" : "Estimado"}
-                    </Badge>
-                    {item.fixed_amount != null && (
-                      <span className="text-sm text-muted-foreground">
-                        ${formatMoney(item.fixed_amount)}
+          <div className="divide-y divide-border/40 rounded-xl border border-border/40">
+            {items.map((item) => {
+              const categoryLabel = item.category_id
+                ? categoryMap.get(String(item.category_id)) ?? "Categoría"
+                : "Sin categoría"
+              const amountLabel =
+                item.fixed_amount != null ? `$${formatMoney(item.fixed_amount)}` : null
+              const typeLabel = item.amount_type === "fixed" ? "Fijo" : "Estimado"
+              const showRentCalc = isRentRecurring(item, categoryMap)
+
+              return (
+                <div key={item.id} className="px-2.5 py-2 sm:px-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium capitalize">
+                      {item.title}
+                    </p>
+                    {amountLabel && (
+                      <span className="shrink-0 text-sm font-medium tabular-nums">
+                        {amountLabel}
                       </span>
                     )}
-                    <span className="text-sm text-muted-foreground">
-                      {item.category_id
-                        ? categoryMap.get(String(item.category_id)) ?? "Categoría"
-                        : "Sin categoría"}
-                    </span>
+                    <div className="flex shrink-0 items-center -mr-1">
+                      {showRentCalc && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          disabled={saving}
+                          aria-label="Calcular alquiler"
+                          title="Calcular alquiler"
+                          onClick={() => setRentDialogItem(item)}
+                        >
+                          <Calculator className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        disabled={saving}
+                        aria-label="Editar gasto"
+                        onClick={() => startEdit(item)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                        disabled={saving}
+                        aria-label="Eliminar gasto"
+                        onClick={() => void handleDelete(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {typeLabel}
+                    {" · "}
+                    {categoryLabel}
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {isRentRecurring(item, categoryMap) && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="min-h-10"
-                      disabled={saving}
-                      onClick={() => setRentDialogItem(item)}
-                    >
-                      <Calculator className="mr-1 h-4 w-4" />
-                      Calcular alquiler
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="min-h-10"
-                    disabled={saving}
-                    onClick={() => startEdit(item)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-10 text-destructive hover:text-destructive"
-                    disabled={saving}
-                    onClick={() => void handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardContent>

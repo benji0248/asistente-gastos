@@ -1,5 +1,4 @@
-import { Category, listOfExpenses, Account } from "../../types"
-import { sumatoria, sumatoriaPendientes } from "../../consts"
+import { Category, Account, ExpensesMonthSummary } from "../../types"
 import { CreateExpense } from "./CreateExpense"
 import { ScanReceipt } from "./ScanReceipt"
 import CreateCategory from "./CreateCategory"
@@ -20,8 +19,7 @@ import { formatMoney } from "@/lib/formatMoney"
 dayjs.locale("es")
 
 interface Props {
-  expenses: listOfExpenses
-  pendingCount: number
+  monthSummary: ExpensesMonthSummary
   paymentFilter: "all" | "paid" | "unpaid"
   onPaymentFilterChange: (key: "all" | "paid" | "unpaid") => void
   onMonthSelect: (month: number, year: number) => void
@@ -35,8 +33,7 @@ interface Props {
 }
 
 export const ExpenseHeader = ({
-  expenses,
-  pendingCount = 0,
+  monthSummary,
   paymentFilter,
   onPaymentFilterChange,
   categories,
@@ -59,9 +56,10 @@ export const ExpenseHeader = ({
           .format("MMMM YYYY")
       : "Seleccioná un mes"
 
-  const paidTotal = sumatoria(expenses)
-  const pendingTotal = sumatoriaPendientes(expenses)
-  const monthTotal = paidTotal + pendingTotal
+  const paidTotal = monthSummary.paidTotal
+  const pendingTotal = monthSummary.pendingTotal
+  const monthTotal = monthSummary.monthTotal
+  const pendingCount = monthSummary.pendingCount
   const paymentOptions: Array<{
     key: "all" | "paid" | "unpaid"
     label: string

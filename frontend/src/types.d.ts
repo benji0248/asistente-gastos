@@ -73,6 +73,24 @@ export type listOfExpenses = Expense[]
 export type listOfCategories = Category[]
 export type listOfAccounts = Account[]
 
+export interface ExpensesMonthSummary {
+    pendingCount: number
+    paidTotal: number
+    pendingTotal: number
+    monthTotal: number
+}
+
+export interface PaginatedExpensesResponse {
+    data: listOfExpenses
+    pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+    }
+    summary: ExpensesMonthSummary
+}
+
 export interface Household {
     id: string
     name: string

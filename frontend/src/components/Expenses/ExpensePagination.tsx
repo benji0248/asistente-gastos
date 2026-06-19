@@ -9,6 +9,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Props {
   currentPage: number
@@ -60,22 +62,42 @@ export function ExpensePagination({
 
   return (
     <>
-      {/* Compact pagination for mobile */}
-      <div className="flex items-center justify-center gap-3 sm:hidden">
-        <PaginationPrevious
+      <nav
+        aria-label="Paginación de gastos"
+        className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:hidden"
+      >
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 shrink-0 rounded-xl"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-        />
-        <span className="text-sm text-muted-foreground tabular-nums">
-          {currentPage} / {totalPages}
-        </span>
-        <PaginationNext
+          aria-label="Página anterior"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+
+        <div className="flex min-w-0 items-center justify-center rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border/40">
+          <span className="truncate text-sm font-medium tabular-nums">
+            <span className="text-foreground">Página {currentPage}</span>
+            <span className="text-muted-foreground"> de {totalPages}</span>
+          </span>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 shrink-0 rounded-xl"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-        />
-      </div>
+          aria-label="Página siguiente"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
+      </nav>
 
-      {/* Windowed pagination for tablet+ */}
       <Pagination className="hidden sm:flex">
         <PaginationContent>
           <PaginationItem>
