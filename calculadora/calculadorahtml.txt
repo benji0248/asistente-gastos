@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculadora de Alquiler</title>
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light d-flex align-items-center min-vh-100">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          <div class="card shadow-lg border-0 rounded-4" id="resultadoCard">
+            <div class="card-body p-4">
+              <h3 class="text-center mb-4 fw-bold">Calculadora de Alquiler</h3>
+
+              <!-- Nombre del inquilino -->
+              <div class="mb-3">
+                <label for="inquilinoNombre" class="form-label">Nombre del inquilino</label>
+                <input
+                  type="text"
+                  class="form-control form-control-lg"
+                  id="inquilinoNombre"
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+
+              <!-- Alquiler actual -->
+              <div class="mb-3">
+                <label for="alquilerActual" class="form-label"
+                  >Alquiler actual ($)</label
+                >
+                <input
+                  type="text"
+                  class="form-control form-control-lg"
+                  id="alquilerActual"
+                  placeholder="Ej: 500000"
+                />
+              </div>
+
+              <!-- Meses PCI -->
+              <div class="mb-3">
+                <label for="mesesPCI" class="form-label"
+                  >Meses de inflación (PCI)</label
+                >
+                <select class="form-select form-select-lg" id="mesesPCI">
+                  <option value="" selected disabled>Seleccione...</option>
+                  <option value="3">3 meses</option>
+                  <option value="4">4 meses</option>
+                  <option value="6">6 meses</option>
+                </select>
+              </div>
+
+              <!-- Contenedor de inflaciones -->
+              <div id="inflacionesContainer" class="mb-3"></div>
+
+              <!-- Depósito -->
+              <div class="mb-3">
+                <label for="depositoMeses" class="form-label"
+                  >Depósito de garantía</label
+                >
+                <select class="form-select form-select-lg" id="depositoMeses">
+                  <option value="" selected disabled>Seleccione...</option>
+                  <option value="1">1 mes</option>
+                  <option value="1.5">Mes y medio</option>
+                  <option value="2">2 meses</option>
+                </select>
+              </div>
+
+              <!-- Mes y año inicial -->
+              <div class="mb-3 row">
+                <div class="col">
+                  <label for="mesInicial" class="form-label">Mes inicial</label>
+                  <select class="form-select form-select-lg" id="mesInicial">
+                    <option value="" selected disabled>Mes...</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                </div>
+                <div class="col">
+                  <label for="anioInicial" class="form-label">Año inicial</label>
+                  <input type="number" class="form-control form-control-lg" id="anioInicial" min="2000" max="2100" value="2025"/>
+                </div>
+              </div>
+
+              <!-- Mes y año final -->
+              <div class="mb-3 row">
+                <div class="col">
+                  <label for="mesFinal" class="form-label">Mes final</label>
+                  <select class="form-select form-select-lg" id="mesFinal">
+                    <option value="" selected disabled>Mes...</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                  </select>
+                </div>
+                <div class="col">
+                  <label for="anioFinal" class="form-label">Año final</label>
+                  <input type="number" class="form-control form-control-lg" id="anioFinal" min="2000" max="2100" value="2025"/>
+                </div>
+              </div>
+
+              <!-- Botón calcular -->
+              <div class="d-grid my-5">
+                <button
+                  class="btn btn-primary btn-lg rounded-3"
+                  id="calcularBtn"
+                >
+                  Calcular nuevo alquiler
+                </button>
+              </div>
+
+              <!-- Botones secundarios -->
+              <div class="d-flex justify-content-between mt-2 flex-wrap gap-2">
+                <button
+                  class="btn btn-outline-primary btn-sm d-none"
+                  id="imagenBtn"
+                >
+                  Descargar como imagen
+                </button>
+                <button class="btn btn-success btn-sm d-none" id="whatsappBtn">
+                  Compartir en WhatsApp
+                </button>
+              </div>
+
+              <!-- Contenedor de solo resultados -->
+              <div id="resultadoContainer">
+                <!-- Detalle -->
+                <div
+                  id="detalleCalculo"
+                  class="mt-3 d-none rounded-3 p-3 text-muted"
+                  style="background-color: #f9f9f9; font-size: 0.9rem"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- html2canvas -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- Script -->
+    <script src="logica.js"></script>
+  </body>
+</html>

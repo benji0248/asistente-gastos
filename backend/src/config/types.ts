@@ -10,6 +10,7 @@ export interface Household {
   name: string
   created_by: string
   created_at: Date
+  shared_cash?: boolean
 }
 
 export interface HouseholdMember {
@@ -34,6 +35,7 @@ export interface HouseholdInvite {
 
 export interface HouseholdContext {
   householdId?: string
+  sharedCash?: boolean
   members: Array<{
     id: string
     username: string
@@ -56,6 +58,7 @@ export interface Expenses {
   id: string
   title: string
   amount: number
+  amount_paid?: number
   payment_date: Date
   created_at: Date
   is_paid: boolean
@@ -78,6 +81,7 @@ export interface newAccount {
 export interface Account {
   id: string
   user_id: string
+  household_id?: string | null
   type: string
   balance: number
   description: string

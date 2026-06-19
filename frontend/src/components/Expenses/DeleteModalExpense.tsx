@@ -11,14 +11,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Trash2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Props {
   id: string
   title: string
   onExpenseMutated?: () => void
+  className?: string
 }
 
-export const DeleteModalExpense = ({ id, title, onExpenseMutated }: Props) => {
+export const DeleteModalExpense = ({ id, title, onExpenseMutated, className }: Props) => {
   const { auth } = useAuth()
   const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
@@ -42,7 +44,7 @@ export const DeleteModalExpense = ({ id, title, onExpenseMutated }: Props) => {
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={handleShow}>
+      <Button variant="ghost" size="icon" onClick={handleShow} className={cn("shrink-0", className)}>
         <Trash2 className="h-4 w-4 text-destructive" />
       </Button>
       <Dialog open={show} onOpenChange={setShow}>

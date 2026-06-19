@@ -1,18 +1,43 @@
 import useAuth from "../../hooks/useAuth"
 import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Category } from "../../types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Eye, EyeOff, Trash2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { X } from "lucide-react"
 
 interface Props {
   categories: Category[]
   onChange: (categories: Category[]) => void
 }
 
+function dedupeByName(categories: Category[]): Category[] {
+  const byName = new Map<string, Category>()
+  for (const category of categories) {
+    const key = category.name.trim().toLowerCase()
+    const existing = byName.get(key)
+    if (!existing) {
+      byName.set(key, category)
+      continue
+    }
+    const preferred =
+      category.is_system && !existing.is_system
+        ? category
+        : !category.is_system && existing.is_system
+          ? existing
+          : category.is_enabled && !existing.is_enabled
+            ? category
+            : existing
+    byName.set(key, preferred)
+  }
+  return Array.from(byName.values())
+}
+
 export function CategoryPreferences({ categories, onChange }: Props) {
   const { auth } = useAuth()
   const axiosPrivate = useAxiosPrivate()
+
+  const ownCategories = dedupeByName(
+    categories.filter((c) => c.user_id === auth.id)
+  )
 
   const toggleVisibility = async (category: Category) => {
     const nextEnabled = !category.is_enabled
@@ -42,7 +67,7 @@ export function CategoryPreferences({ categories, onChange }: Props) {
     }
   }
 
-  if (categories.length === 0) {
+  if (ownCategories.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         No hay categorías. Se crearán las categorías base al iniciar sesión.
@@ -50,74 +75,83 @@ export function CategoryPreferences({ categories, onChange }: Props) {
     )
   }
 
-  const systemCategories = categories.filter((c) => c.is_system)
-  const customCategories = categories.filter((c) => !c.is_system)
+  const systemCategories = ownCategories.filter((c) => c.is_system)
+  const customCategories = ownCategories.filter((c) => !c.is_system)
 
-  const renderRow = (category: Category) => (
-    <div
+  const renderToggleBadge = (category: Category) => (
+    <button
       key={category.id}
-      className="flex items-center justify-between gap-3 rounded-xl border border-border/50 px-4 py-3"
+      type="button"
+      onClick={() => toggleVisibility(category)}
+      title={
+        category.is_enabled
+          ? "Ocultar en gastos e inicio"
+          : "Mostrar en gastos e inicio"
+      }
+      className={cn(
+        "inline-flex min-h-9 items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        category.is_enabled
+          ? "border-primary/25 bg-primary/10 text-primary hover:bg-primary/15"
+          : "border-border bg-muted/40 text-muted-foreground line-through opacity-60 hover:opacity-80"
+      )}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <span
-          className={`truncate text-sm ${category.is_enabled ? "text-foreground" : "text-muted-foreground line-through"}`}
-        >
-          {category.name}
-        </span>
-        {category.is_system && (
-          <Badge variant="secondary" className="shrink-0 text-xs">
-            Base
-          </Badge>
+      {category.name}
+    </button>
+  )
+
+  const renderCustomBadge = (category: Category) => (
+    <span
+      key={category.id}
+      className={cn(
+        "inline-flex min-h-9 items-stretch overflow-hidden rounded-full border text-xs font-medium",
+        category.is_enabled
+          ? "border-primary/25"
+          : "border-border opacity-60"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => toggleVisibility(category)}
+        title={
+          category.is_enabled
+            ? "Ocultar en gastos e inicio"
+            : "Mostrar en gastos e inicio"
+        }
+        className={cn(
+          "px-3 py-1.5 transition-colors focus-visible:outline-none",
+          category.is_enabled
+            ? "bg-primary/10 text-primary hover:bg-primary/15"
+            : "bg-muted/40 text-muted-foreground line-through hover:opacity-80"
         )}
-      </div>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5 rounded-lg px-2"
-          onClick={() => toggleVisibility(category)}
-          title={category.is_enabled ? "Ocultar en gastos e inicio" : "Mostrar en gastos e inicio"}
-        >
-          {category.is_enabled ? (
-            <>
-              <Eye className="h-4 w-4" />
-              <span className="hidden sm:inline">Visible</span>
-            </>
-          ) : (
-            <>
-              <EyeOff className="h-4 w-4" />
-              <span className="hidden sm:inline">Oculta</span>
-            </>
-          )}
-        </Button>
-        {!category.is_system && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
-            onClick={() => deleteCategory(category)}
-            title="Eliminar categoría"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    </div>
+      >
+        {category.name}
+      </button>
+      <button
+        type="button"
+        onClick={() => deleteCategory(category)}
+        title="Eliminar categoría"
+        className="min-w-9 border-l border-inherit px-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
   )
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Activá o desactivá categorías para mostrarlas en gastos e inicio. Las categorías base vienen con tu cuenta; las personalizadas son solo tuyas.
+        Tocá una categoría para activarla u ocultarla en gastos e inicio. Las
+        base vienen con tu cuenta; las personalizadas son solo tuyas.
       </p>
       {systemCategories.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Categorías base
           </h3>
-          <div className="space-y-2">{systemCategories.map(renderRow)}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {systemCategories.map(renderToggleBadge)}
+          </div>
         </div>
       )}
       {customCategories.length > 0 && (
@@ -125,7 +159,9 @@ export function CategoryPreferences({ categories, onChange }: Props) {
           <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Tus categorías
           </h3>
-          <div className="space-y-2">{customCategories.map(renderRow)}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {customCategories.map(renderCustomBadge)}
+          </div>
         </div>
       )}
     </div>

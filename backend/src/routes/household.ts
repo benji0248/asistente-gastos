@@ -14,5 +14,13 @@ householdRoutes.post('/invites/:inviteId/accept', allowedRoles, householdControl
 householdRoutes.post('/invites/:inviteId/reject', allowedRoles, householdControllers.rejectInvite)
 householdRoutes.delete('/members/me', allowedRoles, householdControllers.leaveHousehold)
 householdRoutes.delete('/members/:userId', allowedRoles, householdControllers.removeMember)
+householdRoutes.patch('/shared-cash', allowedRoles, householdControllers.setSharedCash)
+
+householdRoutes.get('/recurring-expenses', allowedRoles, householdControllers.getRecurringExpenses)
+householdRoutes.post('/recurring-expenses', allowedRoles, householdControllers.createRecurringExpense)
+householdRoutes.put('/recurring-expenses/:recurringId', allowedRoles, householdControllers.updateRecurringExpense)
+householdRoutes.delete('/recurring-expenses/:recurringId', allowedRoles, householdControllers.deleteRecurringExpense)
+householdRoutes.get('/recurring-expenses/:recurringId/rent-adjustment', allowedRoles, householdControllers.getRentAdjustment)
+householdRoutes.post('/recurring-expenses/:recurringId/rent-adjustment', allowedRoles, householdControllers.applyRentAdjustment)
 
 export default householdRoutes

@@ -4,9 +4,18 @@ import accountsServices from '../config/accountsServices'
 class accountsControllers {
     private static visibleUserIds = (req: Request) => req.visibleUserIds ?? (req.userId ? [req.userId] : [])
 
+    private static accountContext = (req: Request) => ({
+        visibleUserIds: this.visibleUserIds(req),
+        householdId: req.householdId,
+        sharedCash: req.sharedCash ?? false,
+    })
+
     static getAccounts = async (req: Request, res: Response) => {
         try {
-            const accounts = await accountsServices.getAllAccounts(this.visibleUserIds(req))
+            const accounts = await accountsServices.getAllAccounts(
+                this.visibleUserIds(req),
+                this.accountContext(req)
+            )
             res.status(200).json(accounts ?? [])
         } catch (err) {
             console.error('Error en el controlador getAccounts', err)
@@ -17,7 +26,7 @@ class accountsControllers {
     static getAccount = async (req: Request, res: Response) => {
         try {
             const accountId = req.params.accountId as string
-            const account = await accountsServices.getOneAccount(accountId, this.visibleUserIds(req))
+            const account = await accountsServices.getOneAccount(accountId, this.accountContext(req))
             if (!account) return res.sendStatus(404)
             res.status(200).json(account)
         } catch (err) {
@@ -43,7 +52,7 @@ class accountsControllers {
     static updateOneAccount = async (req: Request, res: Response) => {
         try {
             const accountId = req.params.accountId as string
-            await accountsServices.updateAccount(accountId, req.body, this.visibleUserIds(req))
+            await accountsServices.updateAccount(accountId, req.body, this.accountContext(req))
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador updateOneAccount', err)
@@ -55,7 +64,7 @@ class accountsControllers {
         try {
             const accountId = req.params.accountId as string
             const expenseAmount = req.body.balance
-            await accountsServices.updateBalance(accountId, expenseAmount, this.visibleUserIds(req))
+            await accountsServices.updateBalance(accountId, expenseAmount, this.accountContext(req))
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador updateBalanceAccount', err)
@@ -67,7 +76,7 @@ class accountsControllers {
         try {
             const accountId = req.params.accountId as string
             const moneyToAdd = req.body.amount
-            await accountsServices.addFounds(accountId, moneyToAdd, this.visibleUserIds(req))
+            await accountsServices.addFounds(accountId, moneyToAdd, this.accountContext(req))
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador addMoneyFounds', err)
@@ -80,7 +89,12 @@ class accountsControllers {
             const accountId = req.params.accountId as string
             const accountToTransfer = req.body.accountToTransfer
             const moneyToTransfer = req.body.amount
-            await accountsServices.transferFounds(accountId, accountToTransfer, moneyToTransfer, this.visibleUserIds(req))
+            await accountsServices.transferFounds(
+                accountId,
+                accountToTransfer,
+                moneyToTransfer,
+                this.accountContext(req)
+            )
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador transferMoneyFounds', err)
@@ -92,7 +106,7 @@ class accountsControllers {
         try {
             const accountId = req.params.accountId as string
             const newBalance = req.body.amount
-            await accountsServices.editFounds(accountId, newBalance, this.visibleUserIds(req))
+            await accountsServices.editFounds(accountId, newBalance, this.accountContext(req))
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador editMoneyFounds', err)
@@ -103,7 +117,7 @@ class accountsControllers {
     static deleteOneAccount = async (req: Request, res: Response) => {
         try {
             const accountId = req.params.accountId as string
-            await accountsServices.deleteAccount(accountId, this.visibleUserIds(req))
+            await accountsServices.deleteAccount(accountId, this.accountContext(req))
             res.sendStatus(200)
         } catch (err) {
             console.error('Error en el controlador deleteOneAccount', err)

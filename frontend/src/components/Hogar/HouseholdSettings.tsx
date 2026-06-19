@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -57,10 +57,7 @@ export function HouseholdSettings() {
 
   return (
     <Card className="border-border/40 shadow-soft">
-      <CardHeader>
-        <CardTitle className="font-display text-lg">Familia</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-5 p-4 sm:p-6">
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         {!household ? (
@@ -77,18 +74,18 @@ export function HouseholdSettings() {
                 placeholder="Mi familia"
               />
             </div>
-            <Button type="submit" disabled={saving || loading}>
+            <Button type="submit" className="w-full sm:w-auto" disabled={saving || loading}>
               Crear hogar
             </Button>
           </form>
         ) : (
           <div className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Hogar activo</p>
                 <p className="font-medium">{household.name}</p>
               </div>
-              <Button variant="outline" onClick={() => void leaveHousehold()}>
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => void leaveHousehold()}>
                 Salir del hogar
               </Button>
             </div>
@@ -105,7 +102,7 @@ export function HouseholdSettings() {
                   placeholder="persona@email.com o usuario"
                 />
               </div>
-              <Button type="submit" disabled={saving || loading}>
+              <Button type="submit" className="w-full sm:w-auto" disabled={saving || loading}>
                 Enviar invitación
               </Button>
             </form>
@@ -115,9 +112,9 @@ export function HouseholdSettings() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border/40 px-3 py-2"
+                  className="flex flex-col items-stretch gap-3 rounded-xl border border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-2"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span>@{member.username}</span>
                     {member.id === auth?.id && <Badge variant="secondary">Vos</Badge>}
                     <Badge variant="outline">{member.role === "owner" ? "Admin" : "Miembro"}</Badge>
@@ -126,6 +123,7 @@ export function HouseholdSettings() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="min-h-10 w-full sm:w-auto"
                       onClick={() => void removeMember(member.id)}
                     >
                       Desvincular
@@ -144,18 +142,19 @@ export function HouseholdSettings() {
             {invites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/40 px-3 py-2"
+                className="flex flex-col items-stretch gap-3 rounded-xl border border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-2"
               >
                 <span className="text-sm">
                   {invite.households?.name ?? "Hogar familiar"}
                 </span>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void acceptInvite(invite.id)}>
+                <div className="grid grid-cols-2 gap-2 sm:flex">
+                  <Button size="sm" className="min-h-10" onClick={() => void acceptInvite(invite.id)}>
                     Aceptar
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="min-h-10"
                     onClick={() => void rejectInvite(invite.id)}
                   >
                     Rechazar

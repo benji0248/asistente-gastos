@@ -25,22 +25,19 @@ export const formattedDate = (date: string | undefined) => {
 
 export function sumatoria(expenses: listOfExpenses) {
     const suma = expenses.reduce((total:number, expense) => {
-        if (expense.hasOwnProperty('amount') && Boolean(expense.is_paid) === true) {
-            return total + Number(expense.amount)
-        } else {
-            return total
-        }
+        if (!expense.hasOwnProperty('amount')) return total
+        const paid = Number(expense.amount_paid ?? 0)
+        if (expense.is_paid) return total + Number(expense.amount)
+        return total + paid
     }, 0)
     return suma
 }
 
 export function sumatoriaPendientes(expenses:listOfExpenses) {
     const suma = expenses.reduce((total, expense) => {
-        if (expense.hasOwnProperty('amount') && Boolean(expense.is_paid) === false) {
-            return total + Number(expense.amount)
-        } else {
-            return total
-        }
+        if (!expense.hasOwnProperty('amount') || expense.is_paid) return total
+        const remaining = Number(expense.amount) - Number(expense.amount_paid ?? 0)
+        return total + Math.max(0, remaining)
     }, 0)
     return suma
 }

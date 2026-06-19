@@ -1,13 +1,14 @@
 import { Expense, listOfAccounts, listOfCategories } from "../../types"
 import { EditExpense } from "./EditExpense"
 import { DeleteModalExpense } from "./DeleteModalExpense"
+import { PayExpenseDialog } from "./PayExpenseDialog"
 import { formattedDate } from "../../consts"
-import useAuth from "../../hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
 import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { formatMoney } from "@/lib/formatMoney"
+import { useState } from "react"
 
 interface Props {
   expenses: Expense[]
@@ -38,25 +39,43 @@ function ExpenseCard({
   showOwner = false,
   onExpenseMutated,
 }: ExpenseCardProps) {
-  const { auth } = useAuth()
   const { getOwnerName } = useHousehold()
-  const axiosPrivate = useAxiosPrivate()
+  const [payDialogOpen, setPayDialogOpen] = useState(false)
 
-  const handleComplete = async () => {
-    try {
-      await axiosPrivate.put(`/${auth.id}/expenses/${expense.id}/complete`)
-      onExpenseMutated?.()
-    } catch (err) {
-      console.log("Error en el fetching handleComplete", err)
-    }
-  }
+  const paidAmount = expense.is_paid
+    ? Number(expense.amount)
+    : Number(expense.amount_paid ?? 0)
+  const remaining = expense.is_paid
+    ? 0
+    : Math.max(0, Number(expense.amount) - Number(expense.amount_paid ?? 0))
+  const hasPartial = !expense.is_paid && paidAmount > 0
+  const expenseOwnerLabel = `@${getOwnerName(expense.user_id)}`
+  const accountAlreadyShowsOwner = accountName
+    .toLowerCase()
+    .startsWith(expenseOwnerLabel.toLowerCase())
+  const ownerMeta =
+    showOwner && !accountAlreadyShowsOwner ? ` · ${expenseOwnerLabel}` : ""
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-soft space-y-3">
+    <div className="rounded-2xl border border-border/40 bg-card p-3.5 shadow-soft space-y-3">
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0 flex-1">
-          <p className="font-medium capitalize truncate">{expense.title}</p>
-          <p className="text-2xl font-semibold mt-0.5">${expense.amount}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium capitalize truncate">{expense.title}</p>
+            {expense.household_recurring_expense_id && (
+              <Badge variant="outline" className="rounded-lg shrink-0">
+                Hogar
+              </Badge>
+            )}
+          </div>
+          <p className="font-display text-xl font-semibold tabular-nums sm:text-2xl">
+            ${formatMoney(expense.amount)}
+          </p>
+          {hasPartial && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Pagado ${formatMoney(paidAmount)} · Falta ${formatMoney(remaining)}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 gap-1">
           <DeleteModalExpense
@@ -73,29 +92,27 @@ function ExpenseCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-sm">
-        <Badge variant="secondary" className="capitalize rounded-lg">
+      <div className="space-y-1">
+        <Badge variant="secondary" className="capitalize rounded-lg mb-1">
           {categoryName}
         </Badge>
-        <Badge variant="outline" className="capitalize rounded-lg">
+        <p className="truncate text-xs font-medium text-muted-foreground">
           {accountName}
-        </Badge>
-        {showOwner && (
-          <Badge variant="secondary" className="rounded-lg">
-            @{getOwnerName(expense.user_id)}
-          </Badge>
-        )}
+          {ownerMeta}
+        </p>
       </div>
 
       <Button
         size="default"
         variant={expense.is_paid ? "secondary" : "default"}
         disabled={expense.is_paid}
-        onClick={() => handleComplete()}
-        className="w-full min-h-11 rounded-xl"
+        onClick={() => setPayDialogOpen(true)}
+        className="w-full min-h-10 rounded-xl sm:min-h-11"
       >
         {expense.is_paid ? (
           <>Pagado {formattedDate(expense.payment_date)}</>
+        ) : hasPartial ? (
+          <>Pagar restante (${formatMoney(remaining)})</>
         ) : (
           <>
             <Check className="h-4 w-4" />
@@ -103,6 +120,14 @@ function ExpenseCard({
           </>
         )}
       </Button>
+
+      <PayExpenseDialog
+        open={payDialogOpen}
+        expense={expense}
+        accounts={accounts}
+        onClose={() => setPayDialogOpen(false)}
+        onPaid={() => onExpenseMutated?.()}
+      />
     </div>
   )
 }

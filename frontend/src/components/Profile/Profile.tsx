@@ -16,11 +16,15 @@ import CreateCategory from "../Expenses/CreateCategory"
 
 import { ProfileAccounts } from "./profileAccounts"
 
-import { HouseholdSettings } from "./HouseholdSettings"
+import { SharedCashToggle } from "./SharedCashToggle"
 
 import { CategoryPreferences } from "./CategoryPreferences"
 
 import { balanceTotal } from "../../consts"
+import useHousehold from "@/hooks/useHousehold"
+import { Link } from "react-router-dom"
+import { House } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -33,12 +37,14 @@ import { PageHeader } from "../layout/PageHeader"
 import { SectionLoader } from "../layout/SectionLoader"
 
 import { Loader2 } from "lucide-react"
+import { formatMoney } from "@/lib/formatMoney"
 
 
 
 function Profile() {
 
   const { auth } = useAuth()
+  const { isLinked, household } = useHousehold()
 
   const [accounts, setAccounts] = useState<Account[]>([])
 
@@ -98,7 +104,8 @@ function Profile() {
 
       const categoriesRes = await axiosPrivate.get(`/${auth.id}/categories`, { signal })
 
-      setCategories(categoriesRes.data ?? [])
+      const allCategories = categoriesRes.data ?? []
+      setCategories(allCategories.filter((c: Category) => c.user_id === auth.id))
 
     } catch (err: unknown) {
 
@@ -152,7 +159,7 @@ function Profile() {
 
   return (
 
-    <div className="space-y-10">
+    <div className="space-y-6 sm:space-y-10">
 
       <PageHeader
 
@@ -175,8 +182,33 @@ function Profile() {
 
 
       <Card className="border-border/40 shadow-soft">
+        <CardContent className="flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+              <House className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium">
+                {isLinked && household ? household.name : "Hogar familiar"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {isLinked
+                  ? "Gestioná miembros e invitaciones desde Hogar"
+                  : "Creá o uníte a un hogar para compartir finanzas"}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" className="w-full rounded-xl sm:w-auto" asChild>
+            <Link to={`/${auth?.id}/hogar`}>Ir a Hogar</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-        <CardHeader className="pb-2">
+
+
+      <Card className="border-border/40 shadow-soft">
+
+        <CardHeader className="px-4 pb-2 pt-4 sm:px-6 sm:pt-6">
 
           <CardTitle className="text-sm font-medium text-muted-foreground font-sans">
 
@@ -186,7 +218,7 @@ function Profile() {
 
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
 
           {accountsLoading ? (
 
@@ -194,9 +226,9 @@ function Profile() {
 
           ) : (
 
-            <p className="font-display text-4xl font-bold tracking-tight">
+            <p className="font-display text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
 
-              ${balanceTotal(accounts)}
+              ${formatMoney(balanceTotal(accounts))}
 
             </p>
 
@@ -210,19 +242,15 @@ function Profile() {
 
       <Separator className="opacity-50" />
 
-
-
-      <HouseholdSettings />
-
-
-
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
 
         <div className="space-y-4">
 
           <h2 className="font-display text-lg font-semibold">Cuentas</h2>
 
           <CreateAccount onAccountsChange={() => loadAccounts()} />
+
+          <SharedCashToggle onChanged={() => loadAccounts()} />
 
           {accountsLoading ? (
 

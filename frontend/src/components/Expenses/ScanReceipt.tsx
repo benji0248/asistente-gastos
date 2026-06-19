@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { parseReceiptText, type ReceiptParseResult } from "@/lib/receiptParser"
-import { Category } from "@/types"
+import { Category, Account } from "@/types"
 import {
   BatchReceiptReview,
   type ScannedReceiptDraft,
@@ -17,12 +17,14 @@ import {
 
 interface ScanReceiptProps {
   categories: Category[]
+  accounts: Account[]
   onParsed: (result: ReceiptParseResult) => void
   onExpenseCreated?: () => void
 }
 
 export function ScanReceipt({
   categories,
+  accounts,
   onParsed,
   onExpenseCreated,
 }: ScanReceiptProps) {
@@ -287,6 +289,7 @@ export function ScanReceipt({
         open={showReview}
         drafts={reviewDrafts}
         categories={categories}
+        accounts={accounts}
         onClose={closeReview}
         onDraftsChange={setReviewDrafts}
         onSaved={() => onExpenseCreated?.()}

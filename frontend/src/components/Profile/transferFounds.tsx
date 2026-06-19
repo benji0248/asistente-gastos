@@ -21,17 +21,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 interface Props {
   account: Account
   listOfAccounts: listOfAccounts
   onAccountsChange?: () => void
+  compact?: boolean
 }
 
 export const TransferFounds = ({
   account,
   listOfAccounts,
   onAccountsChange,
+  compact,
 }: Props) => {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
@@ -40,18 +43,16 @@ export const TransferFounds = ({
   const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
   const [amount, setAmount] = useState<number>(account.balance)
+  const [amountInput, setAmountInput] = useState(formatMoneyInput(account.balance))
   const [accountToTransfer, setAccountToTransfer] = useState<string>("")
 
   const handleClose = () => setShow(false)
   const handleShow = () => setShow(true)
 
   const handleAmountChange = (e: string) => {
-    const value = e
-    if (value === "") {
-      setAmount(0)
-    } else {
-      setAmount(parseFloat(value))
-    }
+    const nextValue = normalizeMoneyInput(e)
+    setAmountInput(nextValue)
+    setAmount(parseMoneyInput(nextValue))
   }
 
   const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -69,6 +70,8 @@ export const TransferFounds = ({
         }
       )
       setShow(false)
+      setAmount(0)
+      setAmountInput("")
       onAccountsChange?.()
     } catch (err) {
       console.log("Error en el componente EditFounds", err)
@@ -80,7 +83,7 @@ export const TransferFounds = ({
   return (
     <>
       <Button variant="outline" size="sm" onClick={handleShow}>
-        Transferir Fondos
+        {compact ? "Transferir" : "Transferir Fondos"}
       </Button>
       <Dialog open={show} onOpenChange={setShow}>
         <DialogContent className="sm:max-w-md">
@@ -92,7 +95,7 @@ export const TransferFounds = ({
               <Label>{account.description}</Label>
               <Input
                 type="text"
-                value={String(account.balance)}
+                value={formatMoneyInput(account.balance)}
                 name="balance1"
                 title={account.description}
                 disabled
@@ -105,10 +108,12 @@ export const TransferFounds = ({
               <Input
                 id="transfer-amount"
                 type="text"
+                inputMode="decimal"
                 placeholder="0"
                 name="amount"
-                value={amount}
+                value={amountInput}
                 onChange={(e) => handleAmountChange(e.target.value)}
+                onBlur={() => setAmountInput(formatMoneyInput(amount))}
                 required
               />
               {exceedsBalance && (

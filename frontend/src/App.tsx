@@ -4,6 +4,9 @@ import { Register } from "./components/Auth/Register"
 import { Login } from "./components/Auth/Login"
 import RequireAuth from "./components/RequireAuth"
 import Profile from "./components/Profile/Profile"
+import Hogar from "./components/Hogar/Hogar"
+import Estadisticas from "./components/Stats/Estadisticas"
+import TarjetasCredito from "./components/Tarjetas/TarjetasCredito"
 import Home from "./components/Home/Home"
 import { HomeLogged } from "./components/Home/HomeLogged"
 import PersistLogin from "./components/PersistLogin"
@@ -23,6 +26,9 @@ function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/home" element={<HomeLogged />} />
             <Route path="/:userId/expenses" element={<Expenses />} />
+            <Route path="/:userId/estadisticas" element={<Estadisticas />} />
+            <Route path="/:userId/tarjetas" element={<TarjetasCredito />} />
+            <Route path="/:userId/hogar" element={<Hogar />} />
             <Route path="/:userId/profile" element={<Profile />} />
           </Route>
         </Route>

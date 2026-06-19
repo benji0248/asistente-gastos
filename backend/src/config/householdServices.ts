@@ -1,7 +1,6 @@
-import type { User } from '@supabase/supabase-js'
 import { getSupabaseAdmin } from '../lib/supabase'
+import { isSharedCashReady } from '../lib/sharedCashMigration'
 import { HouseholdContext, HouseholdInvite, Profile } from './types'
-
 type HouseholdMemberRow = {
   household_id: string
   user_id: string
@@ -37,9 +36,27 @@ class householdServices {
 
     if (membersError) throw membersError
 
+    const migrationReady = await isSharedCashReady(async () => {
+      const result = await admin.from('accounts').select('household_id').limit(1)
+      return { error: result.error }
+    })
+
+    let sharedCash = false
+    if (migrationReady) {
+      const { data: household, error: householdError } = await admin
+        .from('households')
+        .select('shared_cash')
+        .eq('id', membership.household_id)
+        .maybeSingle()
+
+      if (householdError) throw householdError
+      sharedCash = household?.shared_cash ?? false
+    }
+
     const visibleUserIds = (members ?? []).map((member) => member.user_id)
     return {
       householdId: membership.household_id,
+      sharedCash,
       visibleUserIds: visibleUserIds.length ? visibleUserIds : [userId],
       members: ((members ?? []) as HouseholdMemberRow[]).map((member) => {
         const profile = profileFromRelation(member.profiles)
@@ -64,6 +81,131 @@ class householdServices {
 
     if (error) throw error
     return { household, members: context.members, visibleUserIds: context.visibleUserIds }
+  }
+
+  static setSharedCash = async (userId: string, enabled: boolean) => {
+    const migrationReady = await isSharedCashReady(async () => {
+      const result = await getSupabaseAdmin().from('accounts').select('household_id').limit(1)
+      return { error: result.error }
+    })
+    if (!migrationReady) {
+      throw new Error('Aplicá la migración supabase/household-shared-cash.sql en Supabase')
+    }
+
+    const current = await this.getCurrentHousehold(userId)
+    if (!current?.household) {
+      throw new Error('Primero tenés que crear un hogar')
+    }
+    if (current.members.length < 2) {
+      throw new Error('Necesitás al menos 2 miembros en el hogar')
+    }
+
+    const actor = current.members.find((member) => member.id === userId)
+    if (actor?.role !== 'owner') {
+      throw new Error('Solo el dueño del hogar puede cambiar esta opción')
+    }
+
+    const admin = getSupabaseAdmin()
+    const householdId = current.household.id
+    const memberIds = current.visibleUserIds
+
+    if (enabled) {
+      const { data: personalCash, error: cashError } = await admin
+        .from('accounts')
+        .select('*')
+        .in('user_id', memberIds)
+        .eq('type', 'cash')
+        .is('household_id', null)
+
+      if (cashError) throw cashError
+
+      const pooledBalance = (personalCash ?? []).reduce(
+        (sum, account) => sum + Number(account.balance),
+        0
+      )
+
+      for (const account of personalCash ?? []) {
+        const { error } = await admin.from('accounts').update({ balance: 0 }).eq('id', account.id)
+        if (error) throw error
+      }
+
+      const { data: existingShared, error: sharedLookupError } = await admin
+        .from('accounts')
+        .select('*')
+        .eq('household_id', householdId)
+        .eq('type', 'cash')
+        .maybeSingle()
+
+      if (sharedLookupError) throw sharedLookupError
+
+      if (existingShared) {
+        const { error } = await admin
+          .from('accounts')
+          .update({ balance: Number(existingShared.balance) + pooledBalance })
+          .eq('id', existingShared.id)
+        if (error) throw error
+      } else {
+        const { error } = await admin.from('accounts').insert({
+          user_id: userId,
+          household_id: householdId,
+          type: 'cash',
+          balance: pooledBalance,
+          description: 'Efectivo compartido',
+        })
+        if (error) throw error
+      }
+
+      const { error: householdError } = await admin
+        .from('households')
+        .update({ shared_cash: true })
+        .eq('id', householdId)
+      if (householdError) throw householdError
+    } else {
+      const { data: sharedAccount, error: sharedError } = await admin
+        .from('accounts')
+        .select('*')
+        .eq('household_id', householdId)
+        .eq('type', 'cash')
+        .maybeSingle()
+
+      if (sharedError) throw sharedError
+
+      const sharedBalance = Number(sharedAccount?.balance ?? 0)
+      const perMember = memberIds.length ? sharedBalance / memberIds.length : 0
+
+      const { data: personalCash, error: cashError } = await admin
+        .from('accounts')
+        .select('*')
+        .in('user_id', memberIds)
+        .eq('type', 'cash')
+        .is('household_id', null)
+
+      if (cashError) throw cashError
+
+      for (const account of personalCash ?? []) {
+        const { error } = await admin
+          .from('accounts')
+          .update({ balance: perMember })
+          .eq('id', account.id)
+        if (error) throw error
+      }
+
+      if (sharedAccount) {
+        const { error } = await admin
+          .from('accounts')
+          .update({ balance: 0 })
+          .eq('id', sharedAccount.id)
+        if (error) throw error
+      }
+
+      const { error: householdError } = await admin
+        .from('households')
+        .update({ shared_cash: false })
+        .eq('id', householdId)
+      if (householdError) throw householdError
+    }
+
+    return this.getCurrentHousehold(userId)
   }
 
   static createHousehold = async (userId: string, name: string) => {
@@ -142,16 +284,16 @@ class householdServices {
     return invite as HouseholdInvite
   }
 
-  static getPendingInvites = async (user: User) => {
+  static getPendingInvites = async (userId: string, email?: string | null) => {
     let query = getSupabaseAdmin()
       .from('household_invites')
       .select('*, households(id, name), profiles!household_invites_invited_by_fkey(id, username)')
       .eq('status', 'pending')
 
-    if (user.email) {
-      query = query.or(`invitee_user_id.eq.${user.id},invitee_email.eq.${user.email.toLowerCase()}`)
+    if (email) {
+      query = query.or(`invitee_user_id.eq.${userId},invitee_email.eq.${email.toLowerCase()}`)
     } else {
-      query = query.eq('invitee_user_id', user.id)
+      query = query.eq('invitee_user_id', userId)
     }
 
     const { data, error } = await query
@@ -159,7 +301,7 @@ class householdServices {
     return data ?? []
   }
 
-  static acceptInvite = async (user: User, inviteId: string) => {
+  static acceptInvite = async (userId: string, email: string | null | undefined, inviteId: string) => {
     const admin = getSupabaseAdmin()
     const { data: invite, error } = await admin
       .from('household_invites')
@@ -171,12 +313,12 @@ class householdServices {
     if (error) throw error
     if (!invite) throw new Error('Invitación no encontrada')
 
-    const emailMatches = user.email && invite.invitee_email === user.email.toLowerCase()
-    if (invite.invitee_user_id !== user.id && !emailMatches) {
+    const emailMatches = email && invite.invitee_email === email.toLowerCase()
+    if (invite.invitee_user_id !== userId && !emailMatches) {
       throw new Error('La invitación no pertenece al usuario actual')
     }
 
-    const currentHousehold = await this.getCurrentHousehold(user.id)
+    const currentHousehold = await this.getCurrentHousehold(userId)
     if (currentHousehold?.household && currentHousehold.household.id !== invite.household_id) {
       throw new Error('Ya pertenecés a otro hogar')
     }
@@ -185,7 +327,7 @@ class householdServices {
       .from('household_members')
       .upsert({
         household_id: invite.household_id,
-        user_id: user.id,
+        user_id: userId,
         role: 'member',
         status: 'accepted',
         joined_at: new Date().toISOString(),
@@ -197,17 +339,17 @@ class householdServices {
       .from('household_invites')
       .update({
         status: 'accepted',
-        invitee_user_id: user.id,
+        invitee_user_id: userId,
         responded_at: new Date().toISOString(),
       })
       .eq('id', inviteId)
 
     if (inviteError) throw inviteError
-    return this.getCurrentHousehold(user.id)
+    return this.getCurrentHousehold(userId)
   }
 
-  static rejectInvite = async (user: User, inviteId: string) => {
-    const invites = await this.getPendingInvites(user)
+  static rejectInvite = async (userId: string, email: string | null | undefined, inviteId: string) => {
+    const invites = await this.getPendingInvites(userId, email)
     const canReject = invites.some((invite) => invite.id === inviteId)
     if (!canReject) throw new Error('Invitación no encontrada')
 

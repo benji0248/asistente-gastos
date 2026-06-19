@@ -3,11 +3,13 @@ export interface Expense {
     user_id: string
     title: string
     amount: number
+    amount_paid?: number
     category_id: string
     created_at: Date | undefined
     payment_date: string | undefined
     is_paid: boolean
     account_id: string
+    household_recurring_expense_id?: string | null
 }
 export interface newExpense {
     user_id: string
@@ -60,6 +62,7 @@ export interface newAccount{
 export interface Account {
     id: string,
     user_id: string,
+    household_id?: string | null,
     type: string,
     balance: number,
     description: string,
@@ -75,6 +78,7 @@ export interface Household {
     name: string
     created_by: string
     created_at: string
+    shared_cash?: boolean
 }
 
 export interface HouseholdMember {
@@ -100,4 +104,15 @@ export interface HouseholdInvite {
         id: string
         username: string
     }
+}
+
+export interface HouseholdRecurringExpense {
+    id: string
+    household_id: string
+    title: string
+    amount_type: "fixed" | "estimated"
+    fixed_amount: number | null
+    category_id: number | null
+    created_by: string
+    created_at: string
 }

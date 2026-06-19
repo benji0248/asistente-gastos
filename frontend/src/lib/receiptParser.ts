@@ -51,7 +51,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   ropa: ["ZARA", "H&M", "LIVERPOOL", "PALACIO", "C&A", "SEARS"],
 }
 
-function parseAmount(raw: string): number | null {
+export function parseAmount(raw: string): number | null {
   const match = raw.match(/[\d][\d.,\s]*/)
   if (!match) return null
 

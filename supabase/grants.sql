@@ -8,6 +8,8 @@ GRANT ALL ON TABLE public.household_invites TO service_role;
 GRANT ALL ON TABLE public.accounts TO service_role;
 GRANT ALL ON TABLE public.categories TO service_role;
 GRANT ALL ON TABLE public.expenses TO service_role;
+GRANT ALL ON TABLE public.household_recurring_expenses TO service_role;
+GRANT ALL ON TABLE public.credit_card_statements TO service_role;
 
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
@@ -19,3 +21,5 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.household_invites TO authen
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.accounts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.categories TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.expenses TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.household_recurring_expenses TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.credit_card_statements TO authenticated;

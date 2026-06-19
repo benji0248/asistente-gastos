@@ -53,7 +53,7 @@ export const ExpenseTable = ({ expenses, categories, accounts, onExpenseMutated 
   }
 
   return (
-    <div className="mt-6 space-y-4">
+    <div className="space-y-4">
       <div className="md:hidden">
         <ExpenseCardList {...sharedProps} />
       </div>

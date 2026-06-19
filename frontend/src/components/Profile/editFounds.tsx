@@ -12,29 +12,29 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 interface Props {
   account: Account
   onAccountsChange?: () => void
+  compact?: boolean
 }
 
-export const EditFounds = ({ account, onAccountsChange }: Props) => {
+export const EditFounds = ({ account, onAccountsChange, compact }: Props) => {
   const { auth } = useAuth()
   const account_id = account.id
   const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
   const [amount, setAmount] = useState<number>(account.balance)
+  const [amountInput, setAmountInput] = useState(formatMoneyInput(account.balance))
 
   const handleClose = () => setShow(false)
   const handleShow = () => setShow(true)
 
   const handleAmountChange = (e: string) => {
-    const value = e
-    if (value === "") {
-      setAmount(0)
-    } else {
-      setAmount(parseFloat(value))
-    }
+    const nextValue = normalizeMoneyInput(e)
+    setAmountInput(nextValue)
+    setAmount(parseMoneyInput(nextValue))
   }
 
   const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -60,7 +60,7 @@ export const EditFounds = ({ account, onAccountsChange }: Props) => {
   return (
     <>
       <Button variant="outline" size="sm" onClick={handleShow}>
-        Cambiar los fondos
+        {compact ? "Ajustar" : "Cambiar los fondos"}
       </Button>
       <Dialog open={show} onOpenChange={setShow}>
         <DialogContent className="sm:max-w-md">
@@ -75,10 +75,12 @@ export const EditFounds = ({ account, onAccountsChange }: Props) => {
               <Input
                 id="edit-amount"
                 type="text"
+                inputMode="decimal"
                 placeholder="0"
                 name="amount"
-                value={amount}
+                value={amountInput}
                 onChange={(e) => handleAmountChange(e.target.value)}
+                onBlur={() => setAmountInput(formatMoneyInput(amount))}
                 required
               />
             </div>

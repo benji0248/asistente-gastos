@@ -1,5 +1,4 @@
-import { Category, listOfExpenses } from "../../types"
-import { FilterExpenses } from "./FilterExpenses"
+import { Category, listOfExpenses, Account } from "../../types"
 import { sumatoria, sumatoriaPendientes } from "../../consts"
 import { CreateExpense } from "./CreateExpense"
 import { ScanReceipt } from "./ScanReceipt"
@@ -7,37 +6,41 @@ import CreateCategory from "./CreateCategory"
 import { useState } from "react"
 import type { ReceiptParseResult } from "@/lib/receiptParser"
 import dayjs from "dayjs"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import "dayjs/locale/es"
+import { Link } from "react-router-dom"
+import useAuth from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { PageHeader } from "@/components/layout/PageHeader"
-import { cn } from "@/lib/utils"
-import { monthKey, type MonthYear } from "@/lib/monthUtils"
+import { MonthPicker } from "../Stats/MonthPicker"
+import type { MonthYear } from "@/lib/monthUtils"
+import { BarChart3 } from "lucide-react"
+import { formatMoney } from "@/lib/formatMoney"
+
+dayjs.locale("es")
 
 interface Props {
-  completedCount: number
-  filterSelected: string | undefined
-  onClearCompleted: () => void
-  handleFilterChange: (category_id: string | undefined) => void
-  handlePaymentFilter: (key: "all" | "paid" | "unpaid") => void
+  expenses: listOfExpenses
+  pendingCount: number
+  paymentFilter: "all" | "paid" | "unpaid"
+  onPaymentFilterChange: (key: "all" | "paid" | "unpaid") => void
   onMonthSelect: (month: number, year: number) => void
   onExpenseMutated?: (options?: { preferCurrentMonth?: boolean }) => void
   onCategoryCreated?: () => void
-  expenses: listOfExpenses
   categories: Category[]
+  accounts: Account[]
   availableMonths: MonthYear[]
   selectedMonth: number | null
   selectedYear: number | null
 }
 
 export const ExpenseHeader = ({
-  completedCount = 0,
-  filterSelected,
-  handleFilterChange,
-  handlePaymentFilter,
   expenses,
+  pendingCount = 0,
+  paymentFilter,
+  onPaymentFilterChange,
   categories,
+  accounts,
   availableMonths,
   selectedMonth,
   selectedYear,
@@ -45,97 +48,111 @@ export const ExpenseHeader = ({
   onExpenseMutated,
   onCategoryCreated,
 }: Props) => {
+  const { auth } = useAuth()
   const [scanResult, setScanResult] = useState<ReceiptParseResult | null>(null)
 
-  const selectedMonthKey =
+  const monthLabel =
     selectedMonth !== null && selectedYear !== null
-      ? monthKey(selectedMonth, selectedYear)
-      : ""
+      ? dayjs()
+          .month(selectedMonth - 1)
+          .year(selectedYear)
+          .format("MMMM YYYY")
+      : "Seleccioná un mes"
 
-  const monthButtons =
-    availableMonths.length > 0
-      ? availableMonths
-      : selectedMonth !== null && selectedYear !== null
-        ? [{ month: selectedMonth, year: selectedYear }]
-        : []
-
-  const monthLabel = selectedMonthKey
-    ? dayjs()
-        .month((selectedMonth ?? 1) - 1)
-        .year(selectedYear ?? dayjs().year())
-        .format("MMMM YYYY")
-    : "Selecciona un mes"
+  const paidTotal = sumatoria(expenses)
+  const pendingTotal = sumatoriaPendientes(expenses)
+  const monthTotal = paidTotal + pendingTotal
+  const paymentOptions: Array<{
+    key: "all" | "paid" | "unpaid"
+    label: string
+    count?: number
+  }> = [
+    { key: "all", label: "Todos" },
+    { key: "unpaid", label: "Pendientes", count: pendingCount },
+    { key: "paid", label: "Pagados" },
+  ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader title="Gastos" description={monthLabel} />
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <Tabs
-          defaultValue="all"
-          onValueChange={(key) =>
-            handlePaymentFilter(key as "all" | "paid" | "unpaid")
-          }
-        >
-          <TabsList className="h-auto flex-wrap justify-start">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="unpaid" className="gap-2">
-              Pendientes
-              {completedCount > 0 && (
-                <Badge variant="destructive">{completedCount}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="paid">Pagados</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="rounded-2xl border border-border/50 bg-muted/20 p-2.5 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <MonthPicker
+            months={availableMonths}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onSelect={onMonthSelect}
+          />
 
-        <div className="flex flex-wrap gap-2">
-          {monthButtons.map(({ month, year }) => {
-            const key = monthKey(month, year)
-            return (
-              <Button
-                key={key}
-                variant={selectedMonthKey === key ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "rounded-xl",
-                  selectedMonthKey === key && "shadow-soft"
-                )}
-                onClick={() => onMonthSelect(month, year)}
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-background/70 p-1 ring-1 ring-border/50 sm:flex">
+            {paymentOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => onPaymentFilterChange(option.key)}
+                className={[
+                  "min-h-10 rounded-lg px-2 text-xs font-medium transition-all sm:px-3 sm:text-sm",
+                  paymentFilter === option.key
+                    ? "bg-foreground text-background shadow-soft"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                ].join(" ")}
               >
-                {key}
-              </Button>
-            )
-          })}
+                {option.label}
+                {option.count ? ` ${option.count}` : ""}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 ring-1 ring-border/40 px-5 py-4 sm:flex-row sm:items-center sm:justify-between text-sm">
-        <p>
-          Sin pagar:{" "}
-          <span className="font-semibold text-destructive">
-            ${sumatoriaPendientes(expenses)}
-          </span>
-        </p>
-        <p>
-          Total del mes:{" "}
-          <span className="font-semibold text-foreground">
-            ${sumatoria(expenses)}
-          </span>
-        </p>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <div className="inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40">
+          <span className="text-muted-foreground">Pagado</span>
+          <Badge variant="secondary" className="rounded-lg font-semibold tabular-nums">
+            ${formatMoney(paidTotal)}
+          </Badge>
+        </div>
+        <div className="inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40">
+          <span className="text-muted-foreground">Sin pagar</span>
+          <Badge
+            variant={pendingTotal > 0 ? "destructive" : "secondary"}
+            className="rounded-lg font-semibold tabular-nums"
+          >
+            ${formatMoney(pendingTotal)}
+          </Badge>
+        </div>
+        <div className="col-span-2 inline-flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm ring-1 ring-border/40 sm:col-span-1">
+          <span className="text-muted-foreground">Total del mes</span>
+          <Badge variant="outline" className="rounded-lg font-semibold tabular-nums">
+            ${formatMoney(monthTotal)}
+          </Badge>
+        </div>
       </div>
 
-      <Separator />
+      {pendingCount > 0 && (
+        <div className="flex items-center gap-2 text-sm">
+          <Badge variant="destructive" className="rounded-full">
+            {pendingCount}
+          </Badge>
+          <span className="text-muted-foreground">
+            gasto{pendingCount === 1 ? "" : "s"} pendiente{pendingCount === 1 ? "" : "s"} este mes
+          </span>
+        </div>
+      )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>button]:min-h-11 [&>button]:w-full sm:[&>button]:w-auto">
         <ScanReceipt
           categories={categories}
+          accounts={accounts}
           onParsed={setScanResult}
           onExpenseCreated={() =>
             onExpenseMutated?.({ preferCurrentMonth: true })
           }
         />
         <CreateExpense
+          categories={categories}
+          accounts={accounts}
           scanResult={scanResult}
           onScanConsumed={() => setScanResult(null)}
           onExpenseCreated={() =>
@@ -143,13 +160,15 @@ export const ExpenseHeader = ({
           }
         />
         <CreateCategory onCreated={onCategoryCreated} />
+        {auth?.id && (
+          <Button variant="ghost" size="sm" className="min-h-11 rounded-xl" asChild>
+            <Link to={`/${auth.id}/estadisticas`}>
+              <BarChart3 className="h-4 w-4" />
+              Ver estadísticas
+            </Link>
+          </Button>
+        )}
       </div>
-
-      <FilterExpenses
-        filterSelected={filterSelected}
-        onFilterChange={handleFilterChange}
-        categories={categories}
-      />
     </div>
   )
 }

@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
+import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 interface Props {
   expense: Expense
@@ -43,6 +44,7 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
   const id = expense.id
   const [title, setTitle] = useState<string>(expense.title)
   const [amount, setAmount] = useState<number>(expense.amount)
+  const [amountInput, setAmountInput] = useState(formatMoneyInput(expense.amount))
   const [type, setType] = useState<string>(expense.category_id)
   const [, setCreatedDate] = useState<Date>()
   const [paidDate, setPaidDate] = useState<Date>()
@@ -120,15 +122,21 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
               <Input
                 id="edit-amount"
                 type="text"
+                inputMode="decimal"
                 name="amount"
-                value={amount}
-                onChange={(e) => setAmount(parseFloat(e.target.value))}
+                value={amountInput}
+                onChange={(e) => {
+                  const nextValue = normalizeMoneyInput(e.target.value)
+                  setAmountInput(nextValue)
+                  setAmount(parseMoneyInput(nextValue))
+                }}
+                onBlur={() => setAmountInput(formatMoneyInput(amount))}
                 required
               />
             </div>
             <div className="space-y-2">
               <Label>Categoría</Label>
-              <Select value={type} onValueChange={setType} required>
+              <Select value={type || undefined} onValueChange={setType} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Elija la categoría del gasto" />
                 </SelectTrigger>
@@ -139,7 +147,7 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
                         category.is_enabled || category.id === expense.category_id
                     )
                     .map((category: Category) => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem key={category.id} value={String(category.id)}>
                       {category.name}
                     </SelectItem>
                   ))}
@@ -175,13 +183,13 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
             </div>
             <div className="space-y-2">
               <Label>Método de Pago</Label>
-              <Select value={paidMethod} onValueChange={setPaidMethod} required>
+              <Select value={paidMethod || undefined} onValueChange={setPaidMethod} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Elija el método de pago" />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map((account: Account) => (
-                    <SelectItem key={account.id} value={account.id}>
+                    <SelectItem key={account.id} value={String(account.id)}>
                       {isLinked
                         ? `@${getOwnerName(account.user_id)} - ${account.description}`
                         : account.description}

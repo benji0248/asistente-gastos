@@ -8,6 +8,7 @@ export interface HouseholdContextType {
   members: HouseholdMember[]
   invites: HouseholdInvite[]
   loading: boolean
+  fetchError: string | null
   isLinked: boolean
   refreshHousehold: () => Promise<void>
   createHousehold: (name: string) => Promise<void>
@@ -28,6 +29,7 @@ export const HouseholdProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<HouseholdMember[]>([])
   const [invites, setInvites] = useState<HouseholdInvite[]>([])
   const [loading, setLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
   const normalizeMembers = useCallback((rawMembers: HouseholdMember[] | undefined) => {
     const list = rawMembers ?? []
@@ -43,32 +45,37 @@ export const HouseholdProvider = ({ children }: { children: ReactNode }) => {
   }, [auth?.id, auth?.user])
 
   const refreshHousehold = useCallback(async () => {
-    if (!auth?.id) {
-      setHousehold(null)
-      setMembers([])
-      setInvites([])
+    if (!auth?.id || !auth.accessToken) {
+      if (!auth?.id) {
+        setHousehold(null)
+        setMembers([])
+        setInvites([])
+        setFetchError(null)
+      }
       return
     }
 
     setLoading(true)
-    try {
-      const [householdRes, invitesRes] = await Promise.all([
-        axiosPrivate.get("/household"),
-        axiosPrivate.get("/household/invites"),
-      ])
+    setFetchError(null)
 
+    try {
+      const householdRes = await axiosPrivate.get("/household")
       setHousehold(householdRes.data?.household ?? null)
       setMembers(normalizeMembers(householdRes.data?.members))
+    } catch (err) {
+      console.error("No se pudo cargar el hogar", err)
+      setFetchError("No se pudo cargar tu hogar. Si ya estabas enlazado, tocá Reintentar.")
+    }
+
+    try {
+      const invitesRes = await axiosPrivate.get("/household/invites")
       setInvites(invitesRes.data ?? [])
     } catch (err) {
-      console.warn("No se pudo cargar el hogar; se usa modo individual.", err)
-      setHousehold(null)
-      setMembers(normalizeMembers([]))
-      setInvites([])
+      console.warn("No se pudieron cargar las invitaciones del hogar", err)
     } finally {
       setLoading(false)
     }
-  }, [auth?.id, axiosPrivate, normalizeMembers])
+  }, [auth?.id, auth?.accessToken, axiosPrivate, normalizeMembers])
 
   useEffect(() => {
     void refreshHousehold()
@@ -121,7 +128,8 @@ export const HouseholdProvider = ({ children }: { children: ReactNode }) => {
         members,
         invites,
         loading,
-        isLinked: members.length > 1,
+        fetchError,
+        isLinked: Boolean(household && members.length > 1),
         refreshHousehold,
         createHousehold,
         inviteMember,

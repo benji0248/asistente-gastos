@@ -5,9 +5,13 @@ import userRoutes from './routes/users'
 import expensesRoutes from './routes/expenses'
 import categoriesRoutes from './routes/categories'
 import accountsRoutes from './routes/accounts'
+import statementsRoutes from './routes/statements'
 import householdRoutes from './routes/household'
+import bootstrapRoutes from './routes/bootstrap'
 import { verifyJWT } from './controllers/verifyJWT'
 import { verifyOwnership } from './middlewares/verifyOwnership'
+import { loadHouseholdContext } from './middlewares/loadHouseholdContext'
+import { preloadJwks } from './lib/jwt'
 
 dotenv.config()
 
@@ -16,6 +20,7 @@ app.disable('x-powered-by')
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[]
 
@@ -40,11 +45,13 @@ api.get('/', (_req, res) => {
 })
 
 api.use(verifyJWT)
+api.use('/bootstrap', bootstrapRoutes)
 api.use('/users', userRoutes)
-api.use('/household', householdRoutes)
-api.use('/:userId/expenses', verifyOwnership, expensesRoutes)
-api.use('/:userId/categories', verifyOwnership, categoriesRoutes)
-api.use('/:userId/accounts', verifyOwnership, accountsRoutes)
+api.use('/household', loadHouseholdContext, householdRoutes)
+api.use('/:userId/expenses', loadHouseholdContext, verifyOwnership, expensesRoutes)
+api.use('/:userId/categories', loadHouseholdContext, verifyOwnership, categoriesRoutes)
+api.use('/:userId/accounts', loadHouseholdContext, verifyOwnership, accountsRoutes)
+api.use('/:userId/statements', loadHouseholdContext, verifyOwnership, statementsRoutes)
 
 app.use('/api', api)
 
@@ -61,6 +68,12 @@ export default app
 
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3000
+  const supabaseUrl = process.env.SUPABASE_URL
+
+  void preloadJwks(supabaseUrl ?? '').catch((err) => {
+    console.warn('No se pudieron precargar las claves JWT de Supabase', err)
+  })
+
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
   })

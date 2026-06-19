@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { AlertCircle, Check, CheckCircle2, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getAuthRedirectUrl } from "@/lib/appUrl"
 import { AuthLayout } from "@/components/layout/AuthLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,6 +95,7 @@ export const Register = () => {
         password: pwd,
         options: {
           data: { username: user },
+          emailRedirectTo: getAuthRedirectUrl('/login'),
         },
       })
 
@@ -122,7 +124,7 @@ export const Register = () => {
             </div>
             <CardTitle className="text-2xl">¡Registro exitoso!</CardTitle>
             <CardDescription className="text-base">
-              Tu cuenta ha sido creada. Ya puedes iniciar sesión.
+              Revisa tu correo y confirma tu cuenta. Después podrás iniciar sesión.
             </CardDescription>
           </CardHeader>
           <CardContent>

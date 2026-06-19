@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export const Login = () => {
-  const { setAuth } = useAuth()
+  const { auth, setAuth } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || "/"
@@ -26,6 +26,12 @@ export const Login = () => {
   useEffect(() => {
     emailRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    if (auth?.id) {
+      navigate('/home', { replace: true })
+    }
+  }, [auth, navigate])
 
   useEffect(() => {
     setErrMsg("")

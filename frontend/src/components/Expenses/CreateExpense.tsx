@@ -24,9 +24,11 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Sparkles } from "lucide-react"
 import type { ReceiptParseResult } from "@/lib/receiptParser"
-import { SectionLoader } from "../layout/SectionLoader"
+import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 interface CreateExpenseProps {
+  categories: Category[]
+  accounts: Account[]
   scanResult?: ReceiptParseResult | null
   onScanConsumed?: () => void
   onExpenseCreated?: () => void
@@ -38,10 +40,17 @@ const confidenceLabel = {
   low: "Lectura débil — completa los campos manualmente.",
 }
 
-export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: CreateExpenseProps) => {
+export const CreateExpense = ({
+  categories,
+  accounts,
+  scanResult,
+  onScanConsumed,
+  onExpenseCreated,
+}: CreateExpenseProps) => {
   const { auth } = useAuth()
   const [title, setTitle] = useState<string>("")
   const [amount, setAmount] = useState<number>(0)
+  const [amountInput, setAmountInput] = useState("")
   const [type, setType] = useState<string>("")
   const [, setCreatedDate] = useState<Date>()
   const [paidDate] = useState<Date>()
@@ -51,10 +60,7 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
   const [fromScan, setFromScan] = useState(false)
   const [scanConfidence, setScanConfidence] =
     useState<ReceiptParseResult["confidence"] | null>(null)
-  const [category, setCategories] = useState<Category[]>([])
-  const [accounts, setAccounts] = useState<Account[]>([])
   const [saving, setSaving] = useState(false)
-  const [optionsLoading, setOptionsLoading] = useState(true)
   const [pendingScan, setPendingScan] = useState<ReceiptParseResult | null>(null)
   const axiosPrivate = useAxiosPrivate()
   const { isLinked, getOwnerName } = useHousehold()
@@ -73,6 +79,7 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
   const applyScanResult = (result: ReceiptParseResult, accountList: Account[]) => {
     setTitle(result.title)
     setAmount(result.amount)
+    setAmountInput(formatMoneyInput(result.amount))
     if (result.categoryId) setType(result.categoryId)
     setPaid(true)
     setFromScan(true)
@@ -87,31 +94,6 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
     setShow(true)
     setCreatedDate(actualDate())
   }
-
-  useEffect(() => {
-    if (!auth?.id) return
-
-    let isMounted = true
-    setOptionsLoading(true)
-
-    Promise.all([
-      axiosPrivate.get(`/${auth.id}/categories?active=true`),
-      axiosPrivate.get(`/${auth.id}/accounts`),
-    ])
-      .then(([categoriesRes, accountsRes]) => {
-        if (!isMounted) return
-        setCategories(categoriesRes.data ?? [])
-        setAccounts(accountsRes.data ?? [])
-      })
-      .catch((error) => console.error("Error fetching expense options:", error))
-      .finally(() => {
-        if (isMounted) setOptionsLoading(false)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [auth?.id, axiosPrivate])
 
   useEffect(() => {
     if (!scanResult) return
@@ -130,11 +112,9 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
   }
 
   const handleAmountChange = (value: string) => {
-    if (value === "") {
-      setAmount(0)
-    } else {
-      setAmount(parseFloat(value))
-    }
+    const nextValue = normalizeMoneyInput(value)
+    setAmountInput(nextValue)
+    setAmount(parseMoneyInput(nextValue))
   }
 
   const addNewExpense = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -157,6 +137,7 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
       })
       setTitle("")
       setAmount(0)
+      setAmountInput("")
       setType("")
       setPaidMethod("")
       setPaid(false)
@@ -191,9 +172,6 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
             </Alert>
           )}
 
-          {optionsLoading ? (
-            <SectionLoader minHeight="min-h-[200px]" />
-          ) : (
           <form onSubmit={addNewExpense} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Gasto</Label>
@@ -212,25 +190,25 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
               <Label htmlFor="amount">Monto</Label>
               <Input
                 id="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Ingrese el monto a pagar"
+                type="text"
+                inputMode="decimal"
+                placeholder="Ej: 2500 o 2500,50"
                 name="amount"
-                value={amount || ""}
+                value={amountInput}
                 onChange={(e) => handleAmountChange(e.target.value)}
+                onBlur={() => setAmountInput(formatMoneyInput(amount))}
                 required
               />
             </div>
             <div className="space-y-2">
               <Label>Categoría</Label>
-              <Select value={type} onValueChange={setType} required>
+              <Select value={type || undefined} onValueChange={setType} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Elija la categoría del gasto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {category.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>
                       {cat.name}
                     </SelectItem>
                   ))}
@@ -266,13 +244,13 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
             </div>
             <div className="space-y-2">
               <Label>Método de Pago</Label>
-              <Select value={paidMethod} onValueChange={setPaidMethod} required>
+              <Select value={paidMethod || undefined} onValueChange={setPaidMethod} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Elija el método de pago" />
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
+                    <SelectItem key={account.id} value={String(account.id)}>
                       {isLinked
                         ? `@${getOwnerName(account.user_id)} - ${account.description}`
                         : account.description}
@@ -290,7 +268,6 @@ export const CreateExpense = ({ scanResult, onScanConsumed, onExpenseCreated }: 
               </Button>
             </DialogFooter>
           </form>
-          )}
         </DialogContent>
       </Dialog>
     </>

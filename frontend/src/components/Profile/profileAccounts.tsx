@@ -1,15 +1,16 @@
-import { Account, listOfAccounts } from "../../types"
+import { User } from "lucide-react"
 import useHousehold from "@/hooks/useHousehold"
+import { Account, listOfAccounts } from "@/types"
+import { formatMoney } from "@/lib/formatMoney"
+import {
+  getAccountTypeIcon,
+  getAccountTypeLabel,
+  isSharedCashAccount,
+} from "@/lib/accountDisplay"
 import { AddFounds } from "./addFounds"
 import { EditFounds } from "./editFounds"
 import { TransferFounds } from "./transferFounds"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface Props {
   accounts: listOfAccounts
@@ -28,43 +29,61 @@ const ProfileAccountCard = ({
   onAccountsChange,
 }: AccountCardProps) => {
   const { isLinked, getOwnerName } = useHousehold()
-  const accountTypeLabel =
-    account.type === "bank_account"
-      ? "Cuenta Bancaria"
-      : account.type === "virtual_wallet"
-        ? "Billetera Virtual"
-        : ""
+  const TypeIcon = getAccountTypeIcon(account)
+  const typeLabel = getAccountTypeLabel(account)
+  const shared = isSharedCashAccount(account)
+  const ownerName = getOwnerName(account.user_id)
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 min-w-0">
-        <div className="min-w-0 flex-1">
-          <CardTitle className="truncate">{account.description}</CardTitle>
-          {accountTypeLabel && (
-            <Badge variant="outline" className="mt-2">
-              {accountTypeLabel}
-            </Badge>
-          )}
-          {isLinked && (
-            <Badge variant="secondary" className="mt-2 ml-2">
-              @{getOwnerName(account.user_id)}
-            </Badge>
-          )}
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-card">
+      <div className="flex items-center gap-3 p-3">
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted"
+          title={typeLabel}
+        >
+          <TypeIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
         </div>
-        <p className="text-xl font-semibold text-foreground shrink-0">
-          ${account.balance}
-        </p>
-      </CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
-        <AddFounds account={account} onAccountsChange={onAccountsChange} />
-        <EditFounds account={account} onAccountsChange={onAccountsChange} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate text-sm font-medium">{account.description}</p>
+            <p className="shrink-0 text-sm font-semibold tabular-nums">
+              ${formatMoney(account.balance)}
+            </p>
+          </div>
+
+          <div className="mt-0.5 flex items-center gap-2 text-muted-foreground">
+            {isLinked && !shared && (
+              <span className="inline-flex items-center gap-1 text-xs" title={`@${ownerName}`}>
+                <User className="h-3 w-3" aria-hidden />
+                <span className="truncate">@{ownerName}</span>
+              </span>
+            )}
+            {shared && (
+              <span className="text-xs" title={typeLabel}>
+                Pool del hogar
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "flex flex-wrap gap-1.5 border-t border-border/40 bg-muted/10 px-3 py-2",
+          "[&>button]:h-7 [&>button]:px-2.5 [&>button]:text-xs"
+        )}
+      >
+        <AddFounds account={account} onAccountsChange={onAccountsChange} compact />
+        <EditFounds account={account} onAccountsChange={onAccountsChange} compact />
         <TransferFounds
           account={account}
           listOfAccounts={listOfAccounts}
           onAccountsChange={onAccountsChange}
+          compact
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -76,7 +95,7 @@ export const ProfileAccounts = ({ accounts, onAccountsChange }: Props) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {accounts.map((account) => (
         <ProfileAccountCard
           key={account.id}

@@ -4,15 +4,16 @@ declare global {
       userId?: string
       user?: string
       email?: string
+      userMetadata?: Record<string, unknown>
       role?: number
       householdId?: string
+      sharedCash?: boolean
       visibleUserIds?: string[]
       householdMembers?: Array<{
         id: string
         username: string
         role: 'owner' | 'member'
       }>
-      supabaseUser?: import('@supabase/supabase-js').User
     }
   }
 }

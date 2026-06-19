@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { LogOut, Menu, Wallet, X } from "lucide-react"
+import { LogOut, Menu, MoreHorizontal, Wallet, X } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
 import { useLogout } from "@/hooks/useLogout"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { getDashboardNavItems } from "./dashboardNav"
 import { SidebarNavLink } from "./SidebarNavLink"
 
@@ -35,6 +36,8 @@ export function MobileNav() {
   if (!auth?.id) return null
 
   const navItems = getDashboardNavItems(auth.id)
+  const primaryItems = navItems.slice(0, 4)
+  const secondaryItems = navItems.slice(4)
 
   const signOut = async () => {
     setOpen(false)
@@ -42,24 +45,95 @@ export function MobileNav() {
     navigate("/login")
   }
 
+  const shortLabels: Record<string, string> = {
+    Inicio: "Inicio",
+    Gastos: "Gastos",
+    Estadísticas: "Stats",
+    "Tarjetas de crédito": "Tarjetas",
+    Hogar: "Hogar",
+    Cuenta: "Cuenta",
+  }
+
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-4 glass-panel border-b px-4 pt-[env(safe-area-inset-top)] lg:hidden">
+      <header className="sticky top-0 z-40 flex min-h-14 items-center gap-3 border-b glass-panel px-4 pt-[env(safe-area-inset-top)] lg:hidden">
         <button
           type="button"
-          className="rounded-xl p-2.5 min-h-11 min-w-11 flex items-center justify-center text-muted-foreground hover:bg-accent transition-colors"
+          className="shrink-0 rounded-xl p-2.5 min-h-11 min-w-11 flex items-center justify-center text-muted-foreground hover:bg-accent transition-colors"
           onClick={() => setOpen(true)}
           aria-label="Abrir menú"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <Link to="/home" className="flex items-center gap-2 font-display font-semibold text-sm min-w-0">
+        <Link
+          to="/home"
+          className="flex min-w-0 flex-1 items-center gap-2 font-display font-semibold text-sm"
+        >
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
             <Wallet className="h-3.5 w-3.5" />
           </div>
           <span className="truncate">Control de Gastos</span>
         </Link>
       </header>
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t glass-panel shadow-elevated lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        aria-label="Navegación principal"
+      >
+        {primaryItems.map(({ to, label, icon: Icon, match }) => {
+          const isActive = match ? match(location.pathname) : location.pathname === to
+          const shortLabel = shortLabels[label] ?? label
+
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-none transition-colors",
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                  isActive && "bg-foreground text-background shadow-soft"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="max-w-full truncate px-0.5">{shortLabel}</span>
+            </Link>
+          )
+        })}
+        <button
+          type="button"
+          className={cn(
+            "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[10px] font-medium leading-none transition-colors",
+            secondaryItems.some(({ match, to }) =>
+              match ? match(location.pathname) : location.pathname === to
+            )
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setOpen(true)}
+          aria-label="Abrir más secciones"
+        >
+          <span
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+              secondaryItems.some(({ match, to }) =>
+                match ? match(location.pathname) : location.pathname === to
+              ) && "bg-foreground text-background shadow-soft"
+            )}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </span>
+          <span>Más</span>
+        </button>
+      </nav>
 
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">

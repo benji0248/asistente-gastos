@@ -2,6 +2,12 @@ import { getSupabaseAdmin } from '../lib/supabase'
 import accountsServices from './accountsServices'
 import { newExpenses, Expenses } from './types'
 
+type AccountAccessContext = {
+    visibleUserIds?: string[]
+    householdId?: string
+    sharedCash?: boolean
+}
+
 function monthDateRange(month: number, year: number) {
     const start = new Date(year, month - 1, 1).toISOString()
     const end = new Date(year, month, 0, 23, 59, 59, 999).toISOString()
@@ -62,27 +68,39 @@ class expenseServices{
         }
     }
 
-    static createOneExpense = async (userId: string, dataExpense: newExpenses, visibleUserIds: string[]) => {
+    static createOneExpense = async (
+        userId: string,
+        dataExpense: newExpenses,
+        visibleUserIds: string[],
+        accountContext?: AccountAccessContext
+    ) => {
+        const accountCtx = accountContext ?? { visibleUserIds }
         if (dataExpense.is_paid === true) {
             dataExpense.payment_date = new Date()
         }
+        const expenseOwnerId =
+            dataExpense.user_id && visibleUserIds.includes(dataExpense.user_id)
+                ? dataExpense.user_id
+                : userId
         try {
-            const account = await accountsServices.getOneAccount(dataExpense.account_id, visibleUserIds)
+            const account = await accountsServices.getOneAccount(dataExpense.account_id, accountCtx)
             if (!account) throw new Error('La cuenta no pertenece al hogar')
+            const paidAmount = dataExpense.is_paid === true ? dataExpense.amount : 0
             const { error } = await getSupabaseAdmin()
                 .from('expenses')
                 .insert({
                     title: dataExpense.title,
                     amount: dataExpense.amount,
+                    amount_paid: paidAmount,
                     payment_date: dataExpense.payment_date,
                     is_paid: dataExpense.is_paid,
-                    user_id: userId,
+                    user_id: expenseOwnerId,
                     category_id: dataExpense.category_id,
                     account_id: dataExpense.account_id,
                 })
             if (error) throw error
             if (dataExpense.is_paid === true) {
-                await accountsServices.updateBalance(dataExpense.account_id, dataExpense.amount, visibleUserIds)
+                await accountsServices.updateBalance(dataExpense.account_id, dataExpense.amount, accountCtx)
             }
         } catch (err) {
             console.error('Error en el servicio createOneExpense', err)
@@ -90,12 +108,86 @@ class expenseServices{
         }
     }
 
-    static updateOneExpense = async (expenseId: string, updateData: Expenses, visibleUserIds: string[]) => {
+    static createBillExpense = async (
+        userId: string,
+        data: { title: string; amount: number; category_id?: string | null }
+    ): Promise<number> => {
+        const { data: inserted, error } = await getSupabaseAdmin()
+            .from('expenses')
+            .insert({
+                title: data.title,
+                amount: data.amount,
+                amount_paid: 0,
+                is_paid: false,
+                user_id: userId,
+                category_id: data.category_id ?? null,
+                account_id: null,
+            })
+            .select('id')
+            .single()
+
+        if (error) throw error
+        return Number(inserted.id)
+    }
+
+    static addPartialPayment = async (
+        expenseId: string,
+        paymentAmount: number,
+        accountId: string,
+        visibleUserIds: string[],
+        accountContext?: AccountAccessContext
+    ) => {
+        const accountCtx = accountContext ?? { visibleUserIds }
+        const expense = await this.getOneExpense(expenseId, visibleUserIds)
+        if (!expense) throw new Error('El gasto no pertenece al hogar')
+
+        const account = await accountsServices.getOneAccount(accountId, accountCtx)
+        if (!account) throw new Error('La cuenta no pertenece al hogar')
+
+        const total = Number(expense.amount)
+        const alreadyPaid = Number(expense.amount_paid ?? 0)
+        const remaining = total - alreadyPaid
+
+        if (paymentAmount <= 0 || paymentAmount > remaining + 0.001) {
+            throw new Error('INVALID_PAYMENT_AMOUNT')
+        }
+
+        const newPaid = Math.min(total, alreadyPaid + paymentAmount)
+        const isPaid = newPaid >= total
+
+        const { error } = await getSupabaseAdmin()
+            .from('expenses')
+            .update({
+                amount_paid: newPaid,
+                is_paid: isPaid,
+                account_id: accountId,
+                payment_date: isPaid ? new Date().toISOString() : expense.payment_date ?? null,
+            })
+            .eq('id', expenseId)
+            .in('user_id', visibleUserIds)
+
+        if (error) throw error
+        await accountsServices.updateBalance(accountId, paymentAmount, accountCtx)
+
+        return this.getOneExpense(expenseId, visibleUserIds)
+    }
+
+    static updateOneExpense = async (
+        expenseId: string,
+        updateData: Expenses,
+        visibleUserIds: string[],
+        accountContext?: AccountAccessContext
+    ) => {
+        const accountCtx = accountContext ?? { visibleUserIds }
         try {
             const expense = await this.getOneExpense(expenseId, visibleUserIds)
             if (!expense) throw new Error('El gasto no pertenece al hogar')
-            const account = await accountsServices.getOneAccount(updateData.account_id, visibleUserIds)
-            if (!account) throw new Error('La cuenta no pertenece al hogar')
+            if (updateData.account_id) {
+                const account = await accountsServices.getOneAccount(updateData.account_id, accountCtx)
+                if (!account) throw new Error('La cuenta no pertenece al hogar')
+            } else if (updateData.is_paid) {
+                throw new Error('ACCOUNT_REQUIRED')
+            }
             let query = getSupabaseAdmin()
                 .from('expenses')
                 .update({
@@ -109,6 +201,16 @@ class expenseServices{
                 .in('user_id', visibleUserIds)
             const { error } = await query
             if (error) throw error
+
+            const recurringId = (expense as { household_recurring_expense_id?: string | null })
+              .household_recurring_expense_id
+            const nextAmount = Number(updateData.amount)
+            if (recurringId && Number.isFinite(nextAmount) && nextAmount > 0) {
+                await getSupabaseAdmin()
+                    .from('household_recurring_expenses')
+                    .update({ fixed_amount: nextAmount })
+                    .eq('id', recurringId)
+            }
         } catch(err) {
             console.error('Error en el servicio updateOneExpense', err)
             throw err
@@ -129,21 +231,42 @@ class expenseServices{
         }
     }
 
-    static completePaid = async (expenseId: string, visibleUserIds: string[]) => {
+    static completePaid = async (
+        expenseId: string,
+        visibleUserIds: string[],
+        accountContext?: AccountAccessContext,
+        accountId?: string
+    ) => {
+        const accountCtx = accountContext ?? { visibleUserIds }
         const expense = await this.getOneExpense(expenseId, visibleUserIds)
-        try {
-            if (expense) {
-                const { error } = await getSupabaseAdmin()
-                    .from('expenses')
-                    .update({ is_paid: true, payment_date: new Date().toISOString() })
-                    .eq('id', expenseId)
-                if (error) throw error
-                await accountsServices.updateBalance(expense.account_id, expense.amount, visibleUserIds)
-            }
-        } catch (err) {
-            console.error('Error en el servicio de completePaid', err)
-            throw err
+        if (!expense) return
+
+        const total = Number(expense.amount)
+        const alreadyPaid = Number(expense.amount_paid ?? 0)
+        const remaining = total - alreadyPaid
+
+        if (remaining <= 0) {
+            const { error } = await getSupabaseAdmin()
+                .from('expenses')
+                .update({ is_paid: true, payment_date: new Date().toISOString() })
+                .eq('id', expenseId)
+                .in('user_id', visibleUserIds)
+            if (error) throw error
+            return
         }
+
+        const payAccountId = accountId || expense.account_id
+        if (!payAccountId) {
+            throw new Error('ACCOUNT_REQUIRED')
+        }
+
+        await this.addPartialPayment(
+            expenseId,
+            remaining,
+            String(payAccountId),
+            visibleUserIds,
+            accountCtx
+        )
     }
 
     static getAvailableMonths = async (userIds: string | string[]) => {

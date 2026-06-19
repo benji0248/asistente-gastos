@@ -10,10 +10,11 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 CREATE TABLE IF NOT EXISTS households (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       TEXT NOT NULL,
-  created_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  created_by  UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  shared_cash BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS household_members (
@@ -41,12 +42,13 @@ CREATE TABLE IF NOT EXISTS household_invites (
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
-  id          SERIAL PRIMARY KEY,
-  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  type        VARCHAR(50),
-  balance     DECIMAL(10, 2) DEFAULT 0,
-  description VARCHAR(255),
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id           SERIAL PRIMARY KEY,
+  user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  household_id UUID REFERENCES households(id) ON DELETE CASCADE,
+  type         VARCHAR(50),
+  balance      DECIMAL(10, 2) DEFAULT 0,
+  description  VARCHAR(255),
+  created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -64,12 +66,25 @@ CREATE TABLE IF NOT EXISTS expenses (
   created_at   TIMESTAMPTZ DEFAULT NOW(),
   payment_date TIMESTAMPTZ,
   is_paid      BOOLEAN DEFAULT FALSE,
+  amount_paid  DECIMAL(10, 2) NOT NULL DEFAULT 0,
   user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   category_id  INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   account_id   INTEGER REFERENCES accounts(id) ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS credit_card_statements (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  statement_data JSONB NOT NULL,
+  file_name      TEXT,
+  expense_id     INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
+  imported_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT credit_card_statements_user_id_key UNIQUE (user_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_card_statements_user_id ON credit_card_statements(user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
@@ -140,6 +155,7 @@ GRANT ALL ON TABLE public.household_invites TO service_role;
 GRANT ALL ON TABLE public.accounts TO service_role;
 GRANT ALL ON TABLE public.categories TO service_role;
 GRANT ALL ON TABLE public.expenses TO service_role;
+GRANT ALL ON TABLE public.credit_card_statements TO service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.profiles TO authenticated;
@@ -149,3 +165,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.household_invites TO authen
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.accounts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.categories TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.expenses TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.credit_card_statements TO authenticated;

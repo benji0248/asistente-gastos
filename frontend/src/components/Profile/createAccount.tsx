@@ -88,6 +88,7 @@ function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) 
                   <SelectItem value="virtual_wallet">
                     Billetera Virtual
                   </SelectItem>
+                  <SelectItem value="credit_card">Tarjeta de crédito</SelectItem>
                 </SelectContent>
               </Select>
             </div>

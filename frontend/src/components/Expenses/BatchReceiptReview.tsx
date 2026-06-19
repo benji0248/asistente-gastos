@@ -24,12 +24,14 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import type { ReceiptParseResult } from "@/lib/receiptParser"
+import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 export interface ScannedReceiptDraft {
   id: string
   previewUrl: string
   title: string
   amount: number
+  amountInput?: string
   categoryId: string
   accountId: string
   included: boolean
@@ -41,6 +43,7 @@ interface BatchReceiptReviewProps {
   open: boolean
   drafts: ScannedReceiptDraft[]
   categories: Category[]
+  accounts: Account[]
   onClose: () => void
   onDraftsChange: (drafts: ScannedReceiptDraft[]) => void
   onSaved: () => void
@@ -61,6 +64,7 @@ export function BatchReceiptReview({
   open,
   drafts,
   categories,
+  accounts,
   onClose,
   onDraftsChange,
   onSaved,
@@ -68,21 +72,13 @@ export function BatchReceiptReview({
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
   const axiosPrivate = useAxiosPrivate()
-  const [accounts, setAccounts] = useState<Account[]>([])
   const [globalAccountId, setGlobalAccountId] = useState("")
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!auth?.id) return
-    axiosPrivate
-      .get(`/${auth.id}/accounts`)
-      .then((res) => {
-        const list: Account[] = res.data ?? []
-        setAccounts(list)
-        setGlobalAccountId(defaultAccountId(list))
-      })
-      .catch((err) => console.error("Error fetching accounts:", err))
-  }, [auth?.id, axiosPrivate])
+    if (!open || accounts.length === 0) return
+    setGlobalAccountId(defaultAccountId(accounts))
+  }, [open, accounts])
 
   const included = drafts.filter((d) => d.included && !d.failed)
   const canSave =
@@ -241,13 +237,19 @@ export function BatchReceiptReview({
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={draft.amount || ""}
-                        onChange={(e) =>
+                        type="text"
+                        inputMode="decimal"
+                        value={draft.amountInput ?? formatMoneyInput(draft.amount)}
+                        onChange={(e) => {
+                          const nextValue = normalizeMoneyInput(e.target.value)
                           updateDraft(draft.id, {
-                            amount: parseFloat(e.target.value) || 0,
+                            amountInput: nextValue,
+                            amount: parseMoneyInput(nextValue),
+                          })
+                        }}
+                        onBlur={() =>
+                          updateDraft(draft.id, {
+                            amountInput: formatMoneyInput(draft.amount),
                           })
                         }
                         placeholder="Monto"
