@@ -2,3 +2,6 @@ project_id = "qpacnsgzxnaxfoylbpuq"
 
 [functions.bank-email-import]
 verify_jwt = false
+
+[functions.parse-statement-pdf]
+verify_jwt = false

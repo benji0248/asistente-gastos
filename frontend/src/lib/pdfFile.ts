@@ -32,6 +32,37 @@ export async function isPdfFileAsync(file: File): Promise<boolean> {
 export const PDF_FILE_ACCEPT =
   "application/pdf,.pdf,application/octet-stream"
 
+/** iOS a veces falla con arrayBuffer() en PDFs de Archivos/iCloud. */
+export async function readPdfFileBytes(file: File): Promise<Uint8Array> {
+  if (typeof file.arrayBuffer === "function") {
+    try {
+      const buffer = await file.arrayBuffer()
+      if (buffer.byteLength > 0) {
+        return new Uint8Array(buffer)
+      }
+    } catch (err) {
+      console.warn("arrayBuffer falló, usando FileReader", err)
+    }
+  }
+  return readFileViaFileReader(file)
+}
+
+function readFileViaFileReader(file: File): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(new Uint8Array(reader.result))
+        return
+      }
+      reject(new Error("Lectura de archivo inválida"))
+    }
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("No se pudo leer el archivo"))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
 export function pdfValidationErrorMessage(file: File): string {
   const typeHint = file.type ? ` (${file.type})` : ""
   const nameHint = file.name ? ` «${file.name}»` : ""

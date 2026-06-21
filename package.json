@@ -9,7 +9,8 @@
     "typecheck": "tsc -b",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "supabase:deploy:bank-email": "supabase functions deploy bank-email-import --project-ref qpacnsgzxnaxfoylbpuq"
+    "supabase:deploy:bank-email": "supabase functions deploy bank-email-import --project-ref qpacnsgzxnaxfoylbpuq",
+    "supabase:deploy:parse-pdf": "supabase functions deploy parse-statement-pdf --project-ref qpacnsgzxnaxfoylbpuq"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.14",
