@@ -29,7 +29,8 @@ export async function isPdfFileAsync(file: File): Promise<boolean> {
   return signature.startsWith("%PDF-")
 }
 
-export const PDF_FILE_ACCEPT = "application/pdf,.pdf"
+export const PDF_FILE_ACCEPT =
+  "application/pdf,.pdf,application/octet-stream"
 
 export function pdfValidationErrorMessage(file: File): string {
   const typeHint = file.type ? ` (${file.type})` : ""

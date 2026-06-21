@@ -65,40 +65,41 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
 
   return (
     <div className="space-y-3">
-      <input
-        id={inputId}
-        ref={inputRef}
-        type="file"
-        accept={PDF_FILE_ACCEPT}
-        className="sr-only"
-        disabled={isDisabled}
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) void handleFile(file)
-        }}
-      />
+      <div className="relative inline-block w-full sm:w-auto">
+        <input
+          id={inputId}
+          ref={inputRef}
+          type="file"
+          accept={PDF_FILE_ACCEPT}
+          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 disabled:pointer-events-none"
+          disabled={isDisabled}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) void handleFile(file)
+          }}
+        />
 
-      <label
-        htmlFor={inputId}
-        aria-disabled={isDisabled}
-        className={cn(
-          buttonVariants({ variant: "outline" }),
-          "inline-flex w-full min-h-11 cursor-pointer items-center justify-center sm:w-auto",
-          isDisabled && "pointer-events-none opacity-50"
-        )}
-      >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Leyendo PDF {progress > 0 ? `(${progress}%)` : "..."}
-          </>
-        ) : (
-          <>
-            <FileUp className="mr-2 h-4 w-4" />
-            Subir resumen PDF
-          </>
-        )}
-      </label>
+        <div
+          aria-disabled={isDisabled}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "pointer-events-none inline-flex w-full min-h-11 items-center justify-center sm:w-auto",
+            isDisabled && "opacity-50"
+          )}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Leyendo PDF {progress > 0 ? `(${progress}%)` : "..."}
+            </>
+          ) : (
+            <>
+              <FileUp className="mr-2 h-4 w-4" />
+              Subir resumen PDF
+            </>
+          )}
+        </div>
+      </div>
 
       {error && (
         <Alert variant="destructive">

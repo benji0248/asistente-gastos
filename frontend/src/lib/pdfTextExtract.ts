@@ -1,82 +1,101 @@
-import * as pdfjsLib from "pdfjs-dist"
-import { version as pdfjsVersion } from "pdfjs-dist"
-import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker"
+const PDFJS_VERSION = "6.0.227"
 
-type WorkerMode = "bundled-port" | "bundled-url" | "cdn" | "main-thread"
-
-let activeMode: WorkerMode | null = null
-
-function bundledWorkerUrl(): string {
-  return new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString()
-}
-
-function cdnWorkerUrl(): string {
-  return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`
-}
-
-function configureWorker(mode: WorkerMode): void {
-  activeMode = mode
-  pdfjsLib.GlobalWorkerOptions.workerPort = null
-
-  switch (mode) {
-    case "bundled-port":
-      if (typeof Worker !== "undefined") {
-        pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
-        pdfjsLib.GlobalWorkerOptions.workerSrc = bundledWorkerUrl()
-        return
-      }
-      configureWorker("bundled-url")
-      return
-    case "bundled-url":
-      pdfjsLib.GlobalWorkerOptions.workerSrc = bundledWorkerUrl()
-      return
-    case "cdn":
-      pdfjsLib.GlobalWorkerOptions.workerSrc = cdnWorkerUrl()
-      return
-    case "main-thread":
-      pdfjsLib.GlobalWorkerOptions.workerPort = null
-      pdfjsLib.GlobalWorkerOptions.workerSrc = ""
-      return
-  }
-}
+type LegacyPdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs")
+type PdfDocument = Awaited<
+  ReturnType<LegacyPdfJs["getDocument"]>
+>["promise"] extends Promise<infer T>
+  ? T
+  : never
 
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
 }
 
-function workerModesForDevice(): WorkerMode[] {
-  if (isMobileDevice()) {
-    return ["cdn", "bundled-url", "bundled-port", "main-thread"]
+function readFileViaFileReader(file: File): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(new Uint8Array(reader.result))
+        return
+      }
+      reject(new Error("Lectura de archivo inválida"))
+    }
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("No se pudo leer el archivo"))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+/** iOS a veces falla con arrayBuffer() en PDFs de Archivos/iCloud. */
+export async function readPdfFileBytes(file: File): Promise<Uint8Array> {
+  if (typeof file.arrayBuffer === "function") {
+    try {
+      const buffer = await file.arrayBuffer()
+      if (buffer.byteLength > 0) {
+        return new Uint8Array(buffer)
+      }
+    } catch (err) {
+      console.warn("arrayBuffer falló, usando FileReader", err)
+    }
   }
-  return ["bundled-port", "bundled-url", "cdn", "main-thread"]
+  return readFileViaFileReader(file)
 }
 
-async function readFileBytes(file: File): Promise<Uint8Array> {
-  return new Uint8Array(await file.arrayBuffer())
+async function loadLegacyPdfJs(): Promise<LegacyPdfJs> {
+  return import("pdfjs-dist/legacy/build/pdf.mjs")
 }
 
-async function openPdfDocument(
+function legacyWorkerUrl(source: "cdn" | "bundled"): string {
+  if (source === "cdn") {
+    return `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/legacy/build/pdf.worker.min.mjs`
+  }
+  return new URL(
+    "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString()
+}
+
+async function openWithLegacy(
   data: Uint8Array,
-  mode: WorkerMode
-): Promise<pdfjsLib.PDFDocumentProxy> {
-  if (mode === "main-thread") {
-    const pdfjsLegacy = await import("pdfjs-dist/legacy/build/pdf.mjs")
-    const task = pdfjsLegacy.getDocument({
-      data: data.slice(),
-      verbosity: pdfjsLib.VerbosityLevel.ERRORS,
-      isEvalSupported: false,
-      useSystemFonts: true,
-      disableFontFace: true,
-    })
-    return task.promise as Promise<pdfjsLib.PDFDocumentProxy>
+  workerSource: "cdn" | "bundled"
+): Promise<PdfDocument> {
+  const pdfjs = await loadLegacyPdfJs()
+  pdfjs.GlobalWorkerOptions.workerPort = null
+  pdfjs.GlobalWorkerOptions.workerSrc = legacyWorkerUrl(workerSource)
+
+  const task = pdfjs.getDocument({
+    data: data.slice(),
+    verbosity: pdfjs.VerbosityLevel?.ERRORS ?? 0,
+    isEvalSupported: false,
+    useSystemFonts: true,
+    disableFontFace: true,
+    useWorkerFetch: false,
+  })
+
+  return task.promise
+}
+
+async function openWithModern(data: Uint8Array): Promise<PdfDocument> {
+  const pdfjs = await import("pdfjs-dist")
+  pdfjs.GlobalWorkerOptions.workerPort = null
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString()
+
+  try {
+    const PdfWorker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?worker"))
+      .default
+    pdfjs.GlobalWorkerOptions.workerPort = new PdfWorker()
+  } catch (err) {
+    console.warn("Worker embebido no disponible", err)
   }
 
-  configureWorker(mode)
-
-  const task = pdfjsLib.getDocument({
-    data,
-    verbosity: pdfjsLib.VerbosityLevel.ERRORS,
+  const task = pdfjs.getDocument({
+    data: data.slice(),
+    verbosity: pdfjs.VerbosityLevel?.ERRORS ?? 0,
     isEvalSupported: false,
     useSystemFonts: true,
   })
@@ -84,17 +103,26 @@ async function openPdfDocument(
   return task.promise
 }
 
-async function openPdfWithFallbacks(file: File): Promise<pdfjsLib.PDFDocumentProxy> {
-  const modes = workerModesForDevice()
-  let lastError: unknown
+async function openPdfDocument(file: File): Promise<PdfDocument> {
+  const data = await readPdfFileBytes(file)
+  const attempts: Array<() => Promise<PdfDocument>> = isMobileDevice()
+    ? [
+        () => openWithLegacy(data, "cdn"),
+        () => openWithLegacy(data, "bundled"),
+      ]
+    : [
+        () => openWithModern(data),
+        () => openWithLegacy(data, "bundled"),
+        () => openWithLegacy(data, "cdn"),
+      ]
 
-  for (const mode of modes) {
+  let lastError: unknown
+  for (const attempt of attempts) {
     try {
-      const data = await readFileBytes(file)
-      return await openPdfDocument(data, mode)
+      return await attempt()
     } catch (err) {
       lastError = err
-      console.warn(`PDF modo ${mode} falló`, err)
+      console.warn("Intento de lectura PDF falló", err)
     }
   }
 
@@ -110,6 +138,7 @@ export function pdfReadErrorMessage(err: unknown): string {
         : ""
 
   const lower = message.toLowerCase()
+  const detail = message ? ` Detalle: ${message.slice(0, 120)}` : ""
 
   if (lower.includes("password") || lower.includes("contraseña")) {
     return "El PDF está protegido con contraseña. Exportalo sin protección e intentá de nuevo."
@@ -117,30 +146,29 @@ export function pdfReadErrorMessage(err: unknown): string {
   if (lower.includes("invalid pdf") || lower.includes("corrupt")) {
     return "El archivo PDF está dañado o no se pudo interpretar."
   }
+  if (lower.includes("lectura") || lower.includes("archivo")) {
+    return `No se pudo acceder al archivo en este dispositivo.${detail}`
+  }
   if (
     lower.includes("worker") ||
     lower.includes("fetch") ||
     lower.includes("network") ||
     lower.includes("loading")
   ) {
-    return "No se pudo cargar el lector de PDF en este dispositivo. Probá con otra conexión o desde la computadora."
+    return `No se pudo cargar el lector de PDF.${detail} Probá con Wi‑Fi o desde la computadora.`
   }
   if (lower.includes("memory") || lower.includes("arraybuffer")) {
     return "El PDF es demasiado pesado para este dispositivo. Probá desde la computadora."
   }
 
-  if (import.meta.env.DEV && message) {
-    return `Ocurrió un error al leer el PDF (${message}).`
-  }
-
-  return "Ocurrió un error al leer el PDF. Intenta de nuevo."
+  return `Ocurrió un error al leer el PDF.${detail}`
 }
 
 export async function extractTextFromPdf(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  const pdf = await openPdfWithFallbacks(file)
+  const pdf = await openPdfDocument(file)
   const pages: string[] = []
 
   try {
@@ -155,10 +183,6 @@ export async function extractTextFromPdf(
     }
   } finally {
     await pdf.destroy()
-  }
-
-  if (import.meta.env.DEV && activeMode) {
-    console.info(`PDF leído con modo: ${activeMode}`)
   }
 
   return pages.join("\n")
