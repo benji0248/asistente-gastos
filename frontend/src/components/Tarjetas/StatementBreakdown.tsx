@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatCurrencyArs, formatCurrencyUsd } from "@/lib/formatCurrency"
 import {
   analyzeStatement,
+  displayUpcomingByMonth,
   type CreditCardStatement,
   type StatementConsumo,
 } from "@/lib/bbvaStatementParser"
@@ -78,7 +79,10 @@ function ConsumoSection({
 
 export function StatementBreakdown({ statement }: StatementBreakdownProps) {
   const analysis = useMemo(() => analyzeStatement(statement), [statement])
-  const upcomingByMonth = statement.upcomingByMonth ?? []
+  const upcomingByMonth = useMemo(
+    () => displayUpcomingByMonth(statement.upcomingByMonth ?? []),
+    [statement.upcomingByMonth]
+  )
 
   return (
     <div className="space-y-4">

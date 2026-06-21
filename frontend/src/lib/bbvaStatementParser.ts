@@ -6,6 +6,82 @@ import customParseFormat from "dayjs/plugin/customParseFormat"
 
 dayjs.extend(customParseFormat)
 
+const SPANISH_MONTH_INDEX: Record<string, number> = {
+  ene: 0,
+  enero: 0,
+  feb: 1,
+  febrero: 1,
+  mar: 2,
+  marzo: 2,
+  abr: 3,
+  abril: 3,
+  may: 4,
+  mayo: 4,
+  jun: 5,
+  junio: 5,
+  jul: 6,
+  julio: 6,
+  ago: 7,
+  agosto: 7,
+  sep: 8,
+  sept: 8,
+  septiembre: 8,
+  set: 8,
+  oct: 9,
+  octubre: 9,
+  nov: 10,
+  noviembre: 10,
+  dic: 11,
+  diciembre: 11,
+}
+
+const SPANISH_MONTH_ABBR = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
+] as const
+
+/** El resumen se importa un mes después del período que cierra (ej. junio → mayo). */
+export const UPCOMING_INSTALLMENTS_MONTH_OFFSET = 1
+
+export function shiftUpcomingMonthLabel(
+  label: string,
+  deltaMonths: number
+): string {
+  const match = label.match(/^([A-Za-zÁÉÍÓÚÑa-záéíóúñ]+)\/(\d{2})$/i)
+  if (!match) return label
+
+  const monthKey = match[1]
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+  const monthIndex = SPANISH_MONTH_INDEX[monthKey]
+  if (monthIndex === undefined) return label
+
+  const year = 2000 + parseInt(match[2], 10)
+  const shifted = dayjs(new Date(year, monthIndex, 1)).add(deltaMonths, "month")
+
+  return `${SPANISH_MONTH_ABBR[shifted.month()]}/${shifted.format("YY")}`
+}
+
+export function displayUpcomingByMonth(
+  items: UpcomingInstallmentMonth[]
+): UpcomingInstallmentMonth[] {
+  return items.map((item) => ({
+    ...item,
+    month: shiftUpcomingMonthLabel(item.month, UPCOMING_INSTALLMENTS_MONTH_OFFSET),
+  }))
+}
+
 export interface StatementInstallment {
   current: number
   total: number
