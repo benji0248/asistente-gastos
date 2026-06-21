@@ -7,6 +7,11 @@ type PdfDocument = Awaited<
   ? T
   : never
 
+interface PdfOpenResult {
+  pdf: PdfDocument
+  cleanup: () => Promise<void>
+}
+
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
@@ -60,7 +65,7 @@ function legacyWorkerUrl(source: "cdn" | "bundled"): string {
 async function openWithLegacy(
   data: Uint8Array,
   workerSource: "cdn" | "bundled"
-): Promise<PdfDocument> {
+): Promise<PdfOpenResult> {
   const pdfjs = await loadLegacyPdfJs()
   pdfjs.GlobalWorkerOptions.workerPort = null
   pdfjs.GlobalWorkerOptions.workerSrc = legacyWorkerUrl(workerSource)
@@ -74,10 +79,14 @@ async function openWithLegacy(
     useWorkerFetch: false,
   })
 
-  return task.promise
+  const pdf = await task.promise
+  return {
+    pdf,
+    cleanup: () => task.destroy(),
+  }
 }
 
-async function openWithModern(data: Uint8Array): Promise<PdfDocument> {
+async function openWithModern(data: Uint8Array): Promise<PdfOpenResult> {
   const pdfjs = await import("pdfjs-dist")
   pdfjs.GlobalWorkerOptions.workerPort = null
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -100,12 +109,16 @@ async function openWithModern(data: Uint8Array): Promise<PdfDocument> {
     useSystemFonts: true,
   })
 
-  return task.promise
+  const pdf = await task.promise
+  return {
+    pdf,
+    cleanup: () => task.destroy(),
+  }
 }
 
-async function openPdfDocument(file: File): Promise<PdfDocument> {
+async function openPdfDocument(file: File): Promise<PdfOpenResult> {
   const data = await readPdfFileBytes(file)
-  const attempts: Array<() => Promise<PdfDocument>> = isMobileDevice()
+  const attempts: Array<() => Promise<PdfOpenResult>> = isMobileDevice()
     ? [
         () => openWithLegacy(data, "cdn"),
         () => openWithLegacy(data, "bundled"),
@@ -168,21 +181,25 @@ export async function extractTextFromPdf(
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<string> {
-  const pdf = await openPdfDocument(file)
+  const { pdf, cleanup } = await openPdfDocument(file)
   const pages: string[] = []
 
   try {
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i)
-      const content = await page.getTextContent()
-      const text = content.items
-        .map((item) => ("str" in item ? item.str : ""))
-        .join(" ")
-      pages.push(text)
-      onProgress?.(Math.round((i / pdf.numPages) * 100))
+      try {
+        const content = await page.getTextContent()
+        const text = content.items
+          .map((item) => ("str" in item ? item.str : ""))
+          .join(" ")
+        pages.push(text)
+        onProgress?.(Math.round((i / pdf.numPages) * 100))
+      } finally {
+        page.cleanup()
+      }
     }
   } finally {
-    await pdf.destroy()
+    await cleanup()
   }
 
   return pages.join("\n")
