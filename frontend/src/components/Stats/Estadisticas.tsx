@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import dayjs from "dayjs"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
-import { useLocation, useNavigate } from "react-router-dom"
-import { isAborted, isAuthError } from "@/lib/apiErrors"
+import { useAppData } from "@/context/AppDataProvider"
+import { getAvailableMonths, listAll } from "@/lib/db/expenses"
 import { normalizeMonths, type MonthYear } from "@/lib/monthUtils"
 import { balanceTotal } from "@/consts"
 import { formatMoney, formatPercent } from "@/lib/formatMoney"
@@ -21,7 +20,7 @@ import {
   sumPaid,
   sumPending,
 } from "@/lib/expenseStats"
-import type { Account, Category, Expense } from "@/types"
+import type { Expense } from "@/types"
 import { PageHeader } from "../layout/PageHeader"
 import { SectionLoader } from "../layout/SectionLoader"
 import { StatCard } from "../layout/StatCard"
@@ -49,48 +48,41 @@ import { cn } from "@/lib/utils"
 function Estadisticas() {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
+  const { accounts, categories: contextCategories, loading: contextLoading } = useAppData()
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [accounts, setAccounts] = useState<Account[]>([])
   const [availableMonths, setAvailableMonths] = useState<MonthYear[]>([])
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const axiosPrivate = useAxiosPrivate()
-  const location = useLocation()
-  const navigate = useNavigate()
+
+  const categories = useMemo(
+    () => contextCategories.filter((c) => c.is_enabled !== false),
+    [contextCategories]
+  )
 
   const loadData = useCallback(async () => {
     if (!auth?.id) return
     setLoading(true)
     try {
-      const [expensesRes, monthsRes, categoriesRes, accountsRes] = await Promise.all([
-        axiosPrivate.get(`/${auth.id}/expenses`),
-        axiosPrivate.get(`/${auth.id}/expenses/available-months`),
-        axiosPrivate.get(`/${auth.id}/categories?active=true`),
-        axiosPrivate.get(`/${auth.id}/accounts`),
+      const [expensesData, monthsData] = await Promise.all([
+        listAll(),
+        getAvailableMonths(),
       ])
 
-      const months = normalizeMonths(monthsRes.data)
+      const months = normalizeMonths(monthsData)
       const nowMonth = dayjs().month() + 1
       const nowYear = dayjs().year()
 
-      setExpenses(expensesRes.data ?? [])
-      setCategories(categoriesRes.data ?? [])
-      setAccounts(accountsRes.data ?? [])
+      setExpenses(expensesData ?? [])
       setAvailableMonths(months)
-
       setSelectedMonth((current) => current ?? nowMonth)
       setSelectedYear((current) => current ?? nowYear)
-    } catch (err: unknown) {
-      if (isAborted(err)) return
-      if (isAuthError(err)) {
-        navigate("/login", { state: { from: location }, replace: true })
-      }
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [auth?.id, axiosPrivate, location, navigate])
+  }, [auth?.id])
 
   useEffect(() => {
     void loadData()
@@ -200,7 +192,7 @@ function Estadisticas() {
           ? "down"
           : "neutral"
 
-  if (loading) {
+  if (loading || contextLoading) {
     return <SectionLoader minHeight="min-h-[60vh]" />
   }
 

@@ -9,7 +9,7 @@ import {
 } from "../../types"
 import useAuth from "../../hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { updateExpense } from "@/lib/db/expenses"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
 import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
+import { getCategoriesForPicker } from "@/lib/categoryUtils"
 
 interface Props {
   expense: Expense
@@ -40,7 +41,6 @@ interface Props {
 export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }: Props) => {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
-  const axiosPrivate = useAxiosPrivate()
   const id = expense.id
   const [title, setTitle] = useState<string>(expense.title)
   const [amount, setAmount] = useState<number>(expense.amount)
@@ -50,6 +50,12 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
   const [paidDate, setPaidDate] = useState<Date>()
   const [paidMethod, setPaidMethod] = useState<string>(expense.account_id)
   const [paid, setPaid] = useState<boolean>(expense.is_paid)
+
+  const pickerCategories = getCategoriesForPicker(
+    categories,
+    auth?.id ?? "",
+    expense.category_id
+  )
 
   const [show, setShow] = useState(false)
   const handleClose = () => setShow(false)
@@ -79,14 +85,11 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
     }
     console.log(editedExpense)
     try {
-      await axiosPrivate.put(
-        `/${auth.id}/expenses/${id}`,
-        JSON.stringify(editedExpense),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      )
+      await updateExpense(String(id), {
+        ...editedExpense,
+        payment_date: paidDate?.toISOString(),
+        household_recurring_expense_id: expense.household_recurring_expense_id,
+      })
       setShow(false)
       onExpenseMutated?.()
     } catch (err) {
@@ -141,12 +144,7 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
                   <SelectValue placeholder="Elija la categoría del gasto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories
-                    .filter(
-                      (category: Category) =>
-                        category.is_enabled || category.id === expense.category_id
-                    )
-                    .map((category: Category) => (
+                  {pickerCategories.map((category: Category) => (
                     <SelectItem key={category.id} value={String(category.id)}>
                       {category.name}
                     </SelectItem>

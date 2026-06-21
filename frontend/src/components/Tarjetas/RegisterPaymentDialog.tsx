@@ -6,9 +6,9 @@ import useAuth from "@/hooks/useAuth"
 
 import useHousehold from "@/hooks/useHousehold"
 
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
-
 import { Account } from "@/types"
+import { useAppData } from "@/context/AppDataProvider"
+import { registerStatementPaymentApi, remainingBillAmount } from "@/lib/creditCardStatementsApi"
 
 import { Button } from "@/components/ui/button"
 
@@ -50,10 +50,7 @@ import { formatCurrencyArs } from "@/lib/formatCurrency"
 import { formatMoneyInput, normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 import type { CreditCardStatement } from "@/lib/bbvaStatementParser"
-
 import type { StatementBillExpense } from "@/lib/creditCardStatementsApi"
-
-import { registerStatementPayment, remainingBillAmount } from "@/lib/creditCardStatementsApi"
 
 
 
@@ -64,6 +61,8 @@ type PaymentOption = "minimum" | "remaining" | "custom"
 interface RegisterPaymentDialogProps {
 
   open: boolean
+
+  statementId?: string
 
   statement: CreditCardStatement | null
 
@@ -105,6 +104,8 @@ export function RegisterPaymentDialog({
 
   open,
 
+  statementId,
+
   statement,
 
   billExpense,
@@ -120,10 +121,7 @@ export function RegisterPaymentDialog({
   const { auth } = useAuth()
 
   const { isLinked, getOwnerName } = useHousehold()
-
-  const axiosPrivate = useAxiosPrivate()
-
-  const [accounts, setAccounts] = useState<Account[]>([])
+  const { accounts } = useAppData()
 
   const [paymentOption, setPaymentOption] = useState<PaymentOption>("minimum")
 
@@ -140,26 +138,9 @@ export function RegisterPaymentDialog({
 
 
   useEffect(() => {
-
-    if (!auth?.id || !open) return
-
-    axiosPrivate
-
-      .get(`/${auth.id}/accounts`)
-
-      .then((res) => {
-
-        const accountList: Account[] = res.data ?? []
-
-        setAccounts(accountList)
-
-        setAccountId(defaultPayAccountId(accountList))
-
-      })
-
-      .catch((err) => console.error("Error cargando cuentas", err))
-
-  }, [auth?.id, axiosPrivate, open])
+    if (!open || accounts.length === 0) return
+    setAccountId(defaultPayAccountId(accounts))
+  }, [open, accounts])
 
 
 
@@ -195,31 +176,19 @@ export function RegisterPaymentDialog({
 
   const expenseOwnerId = ownerUserId ?? auth?.id
 
-  const canSave = resolvedAmount > 0 && accountId && expenseOwnerId && remaining > 0
+  const canSave = resolvedAmount > 0 && accountId && expenseOwnerId && remaining > 0 && statementId
 
 
 
   const handleSave = async () => {
 
-    if (!canSave || !auth?.id || !expenseOwnerId) return
+    if (!canSave || !auth?.id || !expenseOwnerId || !statementId) return
 
     setSaving(true)
 
     try {
 
-      await registerStatementPayment(
-
-        axiosPrivate,
-
-        auth.id,
-
-        expenseOwnerId,
-
-        resolvedAmount,
-
-        accountId
-
-      )
+      await registerStatementPaymentApi(statementId, resolvedAmount, accountId)
 
       onSaved()
 

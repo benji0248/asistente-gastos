@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useState } from "react"
-import axios from "axios"
-import dayjs from "dayjs"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
 import type { HouseholdRecurringExpense } from "@/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,9 +13,13 @@ import { Label } from "@/components/ui/label"
 import { SectionLoader } from "../layout/SectionLoader"
 import { formatMoney } from "@/lib/formatMoney"
 import {
+  applyRentAdjustment,
+  getRentAdjustmentContext,
+  RENT_IPC_PERIOD_MONTHS,
+} from "@/lib/db/rentAdjustment"
+import {
   calculateRentAdjustment,
   RENT_DEPOSIT_MONTHS,
-  RENT_IPC_PERIOD_MONTHS,
   type RentAdjustmentResult,
 } from "@/lib/rentAdjustment"
 
@@ -37,10 +38,6 @@ interface Props {
 }
 
 function getErrorMessage(err: unknown, fallback: string) {
-  if (axios.isAxiosError(err)) {
-    const message = err.response?.data?.message
-    if (typeof message === "string" && message.trim()) return message
-  }
   if (err instanceof Error && err.message) return err.message
   return fallback
 }
@@ -52,7 +49,6 @@ function parseIpcInput(value: string) {
 }
 
 export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Props) {
-  const axiosPrivate = useAxiosPrivate()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -75,18 +71,9 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
       setLoading(true)
       setError("")
       try {
-        const now = dayjs()
-        const response = await axiosPrivate.get(
-          `/household/recurring-expenses/${item.id}/rent-adjustment`,
-          {
-            params: {
-              month: now.month() + 1,
-              year: now.year(),
-            },
-          }
-        )
+        const data = await getRentAdjustmentContext(item.id)
         if (!isMounted) return
-        setContext(response.data)
+        setContext(data)
       } catch (err) {
         if (!isMounted) return
         setError(getErrorMessage(err, "No se pudo cargar el alquiler actual"))
@@ -99,14 +86,15 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
     return () => {
       isMounted = false
     }
-  }, [axiosPrivate, item.id, open])
+  }, [item.id, open])
 
   const ipcRates = useMemo(
     () => ipcInputs.map((value) => parseIpcInput(value)),
     [ipcInputs]
   )
 
-  const canCalculate = context != null && context.current_rent > 0 && ipcRates.every((rate) => Number.isFinite(rate))
+  const canCalculate =
+    context != null && context.current_rent > 0 && ipcRates.every((rate) => Number.isFinite(rate))
 
   const handleCalculate = () => {
     if (!context) return
@@ -129,11 +117,7 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
     setSaving(true)
     setError("")
     try {
-      await axiosPrivate.post(`/household/recurring-expenses/${item.id}/rent-adjustment`, {
-        ipc_rates: ipcRates,
-        month: dayjs().month() + 1,
-        year: dayjs().year(),
-      })
+      await applyRentAdjustment(item.id, ipcRates)
       onApplied?.()
       onOpenChange(false)
     } catch (err) {
@@ -177,7 +161,9 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
             </div>
 
             <div className="space-y-3">
-              <p className="text-sm font-medium">IPC de los últimos {RENT_IPC_PERIOD_MONTHS} meses (%)</p>
+              <p className="text-sm font-medium">
+                IPC de los últimos {RENT_IPC_PERIOD_MONTHS} meses (%)
+              </p>
               {context?.ipc_months.map((ipcMonth, index) => (
                 <div key={`${ipcMonth.label}-${index}`} className="space-y-2">
                   <Label htmlFor={`ipc-${index}`}>{ipcMonth.label}</Label>
@@ -217,10 +203,6 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
                 <p className="font-medium">
                   Total del mes: ${formatMoney(preview.totalToPay)} (alquiler + depósito adicional)
                 </p>
-                <p className="text-muted-foreground text-xs">
-                  Se actualizará la plantilla y el gasto de alquiler del mes. Si hay depósito
-                  adicional, se creará un gasto aparte con categoría Alquiler.
-                </p>
               </div>
             )}
 
@@ -246,7 +228,8 @@ export function RentAdjustmentDialog({ item, open, onOpenChange, onApplied }: Pr
 
 function isRentRecurring(item: HouseholdRecurringExpense, categoryMap: Map<string, string>) {
   if (/alquiler/i.test(item.title)) return true
-  const categoryName = item.category_id != null ? categoryMap.get(String(item.category_id)) : undefined
+  const categoryName =
+    item.category_id != null ? categoryMap.get(String(item.category_id)) : undefined
   return categoryName?.toLowerCase() === "alquiler"
 }
 

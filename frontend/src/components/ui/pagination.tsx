@@ -20,7 +20,7 @@ const PaginationContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ul
     ref={ref}
-    className={cn("flex flex-row flex-wrap items-center justify-center gap-1 overflow-x-auto", className)}
+    className={cn("flex flex-row flex-wrap items-center justify-center gap-2", className)}
     {...props}
   />
 ))
@@ -30,7 +30,7 @@ const PaginationItem = React.forwardRef<
   HTMLLIElement,
   React.ComponentProps<"li">
 >(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn("", className)} {...props} />
+  <li ref={ref} className={cn("shrink-0", className)} {...props} />
 ))
 PaginationItem.displayName = "PaginationItem"
 
@@ -49,7 +49,11 @@ const PaginationLink = ({
     aria-current={isActive ? "page" : undefined}
     variant={isActive ? "default" : "outline"}
     size={size}
-    className={cn("h-9 w-9", className)}
+    className={cn(
+      "shrink-0",
+      size === "icon" ? "h-9 w-9" : "h-9",
+      className
+    )}
     {...props}
   />
 )
@@ -62,11 +66,11 @@ const PaginationPrevious = ({
   <PaginationLink
     aria-label="Página anterior"
     size="default"
-    className={cn("gap-1 pl-2.5", className)}
+    className={cn("gap-1 px-3", className)}
     {...props}
   >
-    <ChevronLeft className="h-4 w-4" />
-    <span>Anterior</span>
+    <ChevronLeft className="h-4 w-4 shrink-0" />
+    <span className="whitespace-nowrap">Anterior</span>
   </PaginationLink>
 )
 PaginationPrevious.displayName = "PaginationPrevious"
@@ -78,11 +82,11 @@ const PaginationNext = ({
   <PaginationLink
     aria-label="Página siguiente"
     size="default"
-    className={cn("gap-1 pr-2.5", className)}
+    className={cn("gap-1 px-3", className)}
     {...props}
   >
-    <span>Siguiente</span>
-    <ChevronRight className="h-4 w-4" />
+    <span className="whitespace-nowrap">Siguiente</span>
+    <ChevronRight className="h-4 w-4 shrink-0" />
   </PaginationLink>
 )
 PaginationNext.displayName = "PaginationNext"

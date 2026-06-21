@@ -1,7 +1,6 @@
 import { createContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from "react"
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
+import type { Session } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase"
-import { bootstrapSession } from "@/lib/bootstrap"
 import { ROLES } from "@/consts"
 
 export type AuthState = {
@@ -41,26 +40,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [auth, setAuth] = useState<AuthState>(null)
   const [loading, setLoading] = useState(true)
 
-  const handleSession = async (event: AuthChangeEvent, session: Session | null) => {
-    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.access_token) {
-      try {
-        await bootstrapSession(session.access_token)
-      } catch (err) {
-        console.warn('No se pudo preparar la cuenta en el servidor', err)
-      }
-    }
-
-    setAuth(buildAuthFromSession(session))
-    setLoading(false)
-  }
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      void handleSession('INITIAL_SESSION', session)
+      setAuth(buildAuthFromSession(session))
+      setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      void handleSession(event, session)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuth(buildAuthFromSession(session))
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

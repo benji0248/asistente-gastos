@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Loader2, Wallet } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
+import { completeExpense } from "@/lib/db/expenses"
 import { Account, Expense } from "@/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,7 +59,6 @@ export function PayExpenseDialog({
 }: PayExpenseDialogProps) {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
-  const axiosPrivate = useAxiosPrivate()
   const [accountId, setAccountId] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -77,11 +76,7 @@ export function PayExpenseDialog({
     if (!canSave || !auth?.id || !expense) return
     setSaving(true)
     try {
-      await axiosPrivate.put(
-        `/${auth.id}/expenses/${expense.id}/complete`,
-        { account_id: String(accountId) },
-        { headers: { "Content-Type": "application/json" } }
-      )
+      await completeExpense(String(expense.id), String(accountId))
       onPaid()
       onClose()
     } catch (err) {

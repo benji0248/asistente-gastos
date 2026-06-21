@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Loader2, Trash2 } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
+import { createExpense } from "@/lib/db/expenses"
 import { Account, Category } from "@/types"
 import { Button } from "@/components/ui/button"
 import {
@@ -70,8 +70,7 @@ export function BatchReceiptReview({
   onSaved,
 }: BatchReceiptReviewProps) {
   const { auth } = useAuth()
-  const { isLinked, getOwnerName } = useHousehold()
-  const axiosPrivate = useAxiosPrivate()
+  const { isLinked, getOwnerName, members } = useHousehold()
   const [globalAccountId, setGlobalAccountId] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -112,9 +111,9 @@ export function BatchReceiptReview({
     try {
       await Promise.all(
         included.map((d) =>
-          axiosPrivate.post(
-            `/${auth.id}/expenses`,
-            JSON.stringify({
+          createExpense(
+            auth.id,
+            {
               title: d.title.trim(),
               amount: d.amount,
               payment_date: undefined,
@@ -122,11 +121,8 @@ export function BatchReceiptReview({
               user_id: auth.id,
               category_id: d.categoryId,
               account_id: resolveAccountId(d),
-            }),
-            {
-              headers: { "Content-Type": "application/json" },
-              withCredentials: true,
-            }
+            },
+            members.map((m) => m.id)
           )
         )
       )

@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
+import { ensureRecurringExpenses } from "@/lib/db/household"
 import { PageHeader } from "../layout/PageHeader"
 import { HouseholdSettings } from "./HouseholdSettings"
 import { HouseholdRecurringExpenses } from "./HouseholdRecurringExpenses"
@@ -14,8 +15,8 @@ function Hogar() {
   const { household, members, loading, fetchError, refreshHousehold } = useHousehold()
 
   useEffect(() => {
-    void refreshHousehold()
-  }, [refreshHousehold])
+    void ensureRecurringExpenses().catch(console.warn)
+  }, [])
 
   return (
     <div className="space-y-6 sm:space-y-10">

@@ -1,6 +1,5 @@
 import { useState } from "react"
-import useAuth from "../../hooks/useAuth"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { deleteExpense } from "@/lib/db/expenses"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,20 +20,12 @@ interface Props {
 }
 
 export const DeleteModalExpense = ({ id, title, onExpenseMutated, className }: Props) => {
-  const { auth } = useAuth()
-  const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
   const handleClose = () => setShow(false)
-  const handleShow = () => {
-    console.log(auth.id)
-    console.log(id)
-    setShow(true)
-  }
+  const handleShow = () => setShow(true)
   const handleDelete = async () => {
     try {
-      await axiosPrivate.delete(`/${auth.id}/expenses/${id}`, {
-        withCredentials: true,
-      })
+      await deleteExpense(id)
       onExpenseMutated?.()
     } catch (err) {
       console.log("Error en el componente DeleteExpenses", err)

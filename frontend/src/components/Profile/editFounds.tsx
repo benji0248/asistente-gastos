@@ -1,6 +1,5 @@
 import { useState } from "react"
-import useAuth from "../../hooks/useAuth"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { setAccountBalance } from "@/lib/db/accounts"
 import { Account } from "../../types"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,9 +20,7 @@ interface Props {
 }
 
 export const EditFounds = ({ account, onAccountsChange, compact }: Props) => {
-  const { auth } = useAuth()
   const account_id = account.id
-  const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
   const [amount, setAmount] = useState<number>(account.balance)
   const [amountInput, setAmountInput] = useState(formatMoneyInput(account.balance))
@@ -40,16 +37,7 @@ export const EditFounds = ({ account, onAccountsChange, compact }: Props) => {
   const addFounds = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      await axiosPrivate.put(
-        `/${auth.id}/accounts/${account_id}/edit`,
-        JSON.stringify({ amount }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      )
+      await setAccountBalance(account_id, amount)
       setShow(false)
       onAccountsChange?.()
     } catch (err) {

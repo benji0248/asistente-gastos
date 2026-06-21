@@ -1,7 +1,6 @@
 import { useState } from "react"
-import useAuth from "../../hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { transferFunds } from "@/lib/db/accounts"
 import { Account, listOfAccounts } from "../../types"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,11 +35,9 @@ export const TransferFounds = ({
   onAccountsChange,
   compact,
 }: Props) => {
-  const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
   const account_id = account.id
   const actualBalance = account.balance
-  const axiosPrivate = useAxiosPrivate()
   const [show, setShow] = useState(false)
   const [amount, setAmount] = useState<number>(account.balance)
   const [amountInput, setAmountInput] = useState(formatMoneyInput(account.balance))
@@ -59,16 +56,7 @@ export const TransferFounds = ({
     e.preventDefault()
     console.log(amount)
     try {
-      await axiosPrivate.put(
-        `/${auth.id}/accounts/${account_id}/transfer`,
-        JSON.stringify({ accountToTransfer, amount }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      )
+      await transferFunds(account_id, accountToTransfer, amount)
       setShow(false)
       setAmount(0)
       setAmountInput("")

@@ -23,3 +23,5 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.categories TO authenticated
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.expenses TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.household_recurring_expenses TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.credit_card_statements TO authenticated;
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;

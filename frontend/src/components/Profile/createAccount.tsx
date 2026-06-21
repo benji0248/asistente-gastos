@@ -1,7 +1,7 @@
 import { useState } from "react"
 import useAuth from "../../hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { createAccount } from "@/lib/db/accounts"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -27,7 +27,6 @@ function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) 
   const [balance, setBalance] = useState<string>("")
   const [description, setDescription] = useState<string>("")
   const [ownerUserId, setOwnerUserId] = useState<string>("")
-  const axiosPrivate = useAxiosPrivate()
   const { members, isLinked } = useHousehold()
   const ownerOptions = members.length
     ? members
@@ -42,19 +41,16 @@ function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) 
 
     const newAccountData = {
       type: type,
-      balance: balance,
+      balance: Number(balance),
       description: description,
       owner_user_id: ownerUserId || auth.id,
     }
     try {
-      await axiosPrivate.post(
-        `/${auth.id}/accounts`,
-        JSON.stringify(newAccountData),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      )
+      await createAccount(newAccountData.owner_user_id, {
+        type: newAccountData.type,
+        balance: newAccountData.balance,
+        description: newAccountData.description,
+      })
       setType("")
       setBalance("")
       setDescription("")

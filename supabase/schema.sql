@@ -73,18 +73,20 @@ CREATE TABLE IF NOT EXISTS expenses (
 );
 
 CREATE TABLE IF NOT EXISTS credit_card_statements (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id        UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  statement_data JSONB NOT NULL,
-  file_name      TEXT,
-  expense_id     INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
-  imported_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT credit_card_statements_user_id_key UNIQUE (user_id)
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  statement_data  JSONB NOT NULL,
+  file_name       TEXT,
+  expense_id      INTEGER REFERENCES expenses(id) ON DELETE SET NULL,
+  statement_month DATE NOT NULL DEFAULT date_trunc('month', NOW())::date,
+  imported_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_credit_card_statements_user_id ON credit_card_statements(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_card_statements_user_month ON credit_card_statements(user_id, statement_month);
+CREATE INDEX IF NOT EXISTS idx_credit_card_statements_month ON credit_card_statements(statement_month);
 CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
@@ -166,3 +168,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.accounts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.categories TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.expenses TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.credit_card_statements TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;

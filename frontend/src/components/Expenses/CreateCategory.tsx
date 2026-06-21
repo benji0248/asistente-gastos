@@ -1,6 +1,6 @@
 import { useState } from "react"
 import useAuth from "../../hooks/useAuth"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { createCategory } from "@/lib/db/categories"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label"
 
 function CreateCategory({ onCreated }: { onCreated?: () => void }) {
   const { auth } = useAuth()
-  const axiosPrivate = useAxiosPrivate()
   const [name, setName] = useState<string>("")
   const [show, setShow] = useState<boolean>(false)
   const handleClose = () => setShow(false)
@@ -23,17 +22,7 @@ function CreateCategory({ onCreated }: { onCreated?: () => void }) {
   const addNewCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      const response = await axiosPrivate.post(
-        `/${auth.id}/categories`,
-        JSON.stringify({ name }),
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-        }
-      )
-      console.log(JSON.stringify(response.data))
+      await createCategory(auth.id, name)
       setName("")
       setShow(false)
       onCreated?.()

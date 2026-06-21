@@ -1,8 +1,14 @@
-import { FormEvent, useCallback, useEffect, useState } from "react"
-import axios from "axios"
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react"
+import { useAppData } from "@/context/AppDataProvider"
 import useAuth from "@/hooks/useAuth"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
-import type { Category, HouseholdRecurringExpense } from "@/types"
+import { getSelectableCategories } from "@/lib/categoryUtils"
+import {
+  createRecurringExpense,
+  deleteRecurringExpense,
+  listRecurringExpenses,
+  updateRecurringExpense,
+} from "@/lib/db/household"
+import type { HouseholdRecurringExpense } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -46,19 +52,22 @@ const emptyForm = (): FormState => ({
 })
 
 function getErrorMessage(err: unknown, fallback: string) {
-  if (axios.isAxiosError(err)) {
-    const message = err.response?.data?.message
-    if (typeof message === "string" && message.trim()) return message
-  }
   if (err instanceof Error && err.message) return err.message
   return fallback
 }
 
 export function HouseholdRecurringExpenses() {
   const { auth } = useAuth()
-  const axiosPrivate = useAxiosPrivate()
+  const { categories: contextCategories } = useAppData()
   const [items, setItems] = useState<HouseholdRecurringExpense[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+  const categories = useMemo(
+    () => getSelectableCategories(contextCategories, auth?.id ?? ""),
+    [contextCategories, auth?.id]
+  )
+  const categoryMap = useMemo(
+    () => new Map(contextCategories.map((category) => [String(category.id), category.name])),
+    [contextCategories]
+  )
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -67,25 +76,17 @@ export function HouseholdRecurringExpenses() {
   const [formOpen, setFormOpen] = useState(false)
   const [rentDialogItem, setRentDialogItem] = useState<HouseholdRecurringExpense | null>(null)
 
-  const categoryMap = new Map(categories.map((category) => [String(category.id), category.name]))
-
   const loadData = useCallback(async () => {
-    if (!auth?.id) return
     setLoading(true)
     setError("")
     try {
-      const [recurringRes, categoriesRes] = await Promise.all([
-        axiosPrivate.get("/household/recurring-expenses"),
-        axiosPrivate.get(`/${auth.id}/categories?active=true`),
-      ])
-      setItems(recurringRes.data ?? [])
-      setCategories(categoriesRes.data ?? [])
+      setItems(await listRecurringExpenses())
     } catch (err) {
       setError(getErrorMessage(err, "No se pudieron cargar los gastos del hogar"))
     } finally {
       setLoading(false)
     }
-  }, [auth?.id, axiosPrivate])
+  }, [])
 
   useEffect(() => {
     void loadData()
@@ -143,9 +144,9 @@ export function HouseholdRecurringExpenses() {
     try {
       const payload = buildPayload()
       if (editingId) {
-        await axiosPrivate.put(`/household/recurring-expenses/${editingId}`, payload)
+        await updateRecurringExpense(editingId, payload)
       } else {
-        await axiosPrivate.post("/household/recurring-expenses", payload)
+        await createRecurringExpense(payload)
       }
       resetForm()
       await loadData()
@@ -160,7 +161,7 @@ export function HouseholdRecurringExpenses() {
     setSaving(true)
     setError("")
     try {
-      await axiosPrivate.delete(`/household/recurring-expenses/${id}`)
+      await deleteRecurringExpense(id)
       if (editingId === id) resetForm()
       await loadData()
     } catch (err) {

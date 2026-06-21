@@ -1,33 +1,16 @@
-import { useCallback, useEffect, useState } from "react"
-
+import { useCallback, useEffect, useMemo, useState } from "react"
 import dayjs from "dayjs"
-
 import { ExpenseTable } from "./ExpenseTable"
-
-import {
-  listOfAccounts,
-  listOfCategories,
-  listOfExpenses,
-  ExpensesMonthSummary,
-  PaginatedExpensesResponse,
-} from "../../types"
-
+import { listOfExpenses, ExpensesMonthSummary } from "../../types"
 import { ExpenseHeader } from "./ExpenseHeader"
-
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
-
 import useAuth from "../../hooks/useAuth"
-
-import { useNavigate, useLocation } from "react-router-dom"
-
-import { isAborted, isAuthError } from "@/lib/apiErrors"
-
+import { useAppData } from "@/context/AppDataProvider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-
 import { SectionLoader } from "../layout/SectionLoader"
-
 import { buildRecentMonths } from "@/lib/monthUtils"
+import { listByMonthPaginated } from "@/lib/db/expenses"
+import { getSelectableCategories } from "@/lib/categoryUtils"
 
 const EXPENSES_PAGE_SIZE = 10
 
@@ -40,130 +23,63 @@ const emptyMonthSummary = (): ExpensesMonthSummary => ({
 
 function Expenses() {
   const { auth } = useAuth()
+  const { accounts, categories, loading: metadataLoading, refreshCategories } = useAppData()
 
   const [expenses, setExpenses] = useState<listOfExpenses>([])
   const [monthSummary, setMonthSummary] = useState<ExpensesMonthSummary>(emptyMonthSummary)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
-
-  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">(
-    "all"
-  )
-
-  const [categories, setCategories] = useState<listOfCategories>([])
-  const [accounts, setAccounts] = useState<listOfAccounts>([])
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all")
 
   const availableMonths = buildRecentMonths()
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
-
-  const [metadataLoading, setMetadataLoading] = useState(true)
   const [expensesLoading, setExpensesLoading] = useState(true)
-
-  const axiosPrivate = useAxiosPrivate()
-  const location = useLocation()
-  const navigate = useNavigate()
 
   const fetchExpensesForMonth = useCallback(
     async (
       month: number,
       year: number,
-      options: {
-        page: number
-        payment: "all" | "paid" | "unpaid"
-        signal?: AbortSignal
-      }
+      options: { page: number; payment: "all" | "paid" | "unpaid" }
     ) => {
       if (!auth?.id) return
 
-      const { page, payment, signal } = options
-
+      const { page, payment } = options
       setExpensesLoading(true)
 
       try {
-        const response = await axiosPrivate.get<PaginatedExpensesResponse>(
-          `/${auth.id}/expenses/${month}/${year}`,
-          {
-            signal,
-            params: {
-              page,
-              limit: EXPENSES_PAGE_SIZE,
-              payment,
-            },
-          }
-        )
+        const result = await listByMonthPaginated({
+          month,
+          year,
+          page,
+          limit: EXPENSES_PAGE_SIZE,
+          payment,
+        })
 
-        setExpenses(response.data.data ?? [])
-        setMonthSummary(response.data.summary ?? emptyMonthSummary())
-        setCurrentPage(response.data.pagination?.page ?? page)
-        setTotalPages(response.data.pagination?.totalPages ?? 0)
-      } catch (err: unknown) {
-        if (isAborted(err)) return
-
-        if (isAuthError(err)) {
-          navigate("/login", { state: { from: location }, replace: true })
-        }
+        setExpenses(result.data ?? [])
+        setMonthSummary(result.summary ?? emptyMonthSummary())
+        setCurrentPage(result.pagination?.page ?? page)
+        setTotalPages(result.pagination?.totalPages ?? 0)
+      } catch (err) {
+        console.error(err)
       } finally {
-        if (!signal?.aborted) setExpensesLoading(false)
+        setExpensesLoading(false)
       }
     },
-    [auth?.id, axiosPrivate, location, navigate]
+    [auth?.id]
   )
 
-  const refreshCategories = useCallback(async () => {
-    if (!auth?.id) return
-
-    try {
-      const response = await axiosPrivate.get(`/${auth.id}/categories`)
-      setCategories(response.data ?? [])
-    } catch (err) {
-      console.error(err)
-    }
-  }, [auth?.id, axiosPrivate])
-
   useEffect(() => {
-    if (!auth?.id) return
+    if (!auth?.id || metadataLoading) return
 
-    const controller = new AbortController()
+    const nowMonth = dayjs().month() + 1
+    const nowYear = dayjs().year()
+    setSelectedMonth(nowMonth)
+    setSelectedYear(nowYear)
+    setCurrentPage(1)
 
-    const load = async () => {
-      setMetadataLoading(true)
-
-      const nowMonth = dayjs().month() + 1
-      const nowYear = dayjs().year()
-
-      try {
-        const [accountsRes, categoriesRes] = await Promise.all([
-          axiosPrivate.get(`/${auth.id}/accounts`, { signal: controller.signal }),
-          axiosPrivate.get(`/${auth.id}/categories`, { signal: controller.signal }),
-        ])
-
-        setAccounts(accountsRes.data ?? [])
-        setCategories(categoriesRes.data ?? [])
-        setSelectedMonth(nowMonth)
-        setSelectedYear(nowYear)
-        setCurrentPage(1)
-
-        await fetchExpensesForMonth(nowMonth, nowYear, {
-          page: 1,
-          payment: "all",
-          signal: controller.signal,
-        })
-      } catch (err: unknown) {
-        if (isAborted(err)) return
-
-        if (isAuthError(err)) {
-          navigate("/login", { state: { from: location }, replace: true })
-        }
-      } finally {
-        if (!controller.signal.aborted) setMetadataLoading(false)
-      }
-    }
-
-    void load()
-
-    return () => controller.abort()
-  }, [auth?.id, axiosPrivate, fetchExpensesForMonth, location, navigate])
+    void fetchExpensesForMonth(nowMonth, nowYear, { page: 1, payment: "all" })
+  }, [auth?.id, metadataLoading, fetchExpensesForMonth])
 
   const handleMonthSelect = async (month: number, year: number) => {
     setSelectedMonth(month)
@@ -175,7 +91,6 @@ function Expenses() {
   const handlePaymentFilterChange = (filter: "all" | "paid" | "unpaid") => {
     setPaymentFilter(filter)
     setCurrentPage(1)
-
     const month = selectedMonth ?? dayjs().month() + 1
     const year = selectedYear ?? dayjs().year()
     void fetchExpensesForMonth(month, year, { page: 1, payment: filter })
@@ -208,8 +123,9 @@ function Expenses() {
     })
   }
 
-  const activeCategories = categories.filter(
-    (category) => category.is_enabled !== false
+  const selectableCategories = useMemo(
+    () => getSelectableCategories(categories, auth?.id ?? ""),
+    [categories, auth?.id]
   )
 
   return (
@@ -223,7 +139,7 @@ function Expenses() {
               monthSummary={monthSummary}
               paymentFilter={paymentFilter}
               onPaymentFilterChange={handlePaymentFilterChange}
-              categories={activeCategories}
+              categories={selectableCategories}
               accounts={accounts}
               availableMonths={availableMonths}
               selectedMonth={selectedMonth}

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "@/hooks/useAxiosPrivate"
+import { useAppData } from "@/context/AppDataProvider"
 import { cn } from "@/lib/utils"
 
 interface Props {
@@ -11,8 +11,8 @@ interface Props {
 
 export function SharedCashToggle({ onChanged }: Props) {
   const { auth } = useAuth()
-  const { household, members, isLinked, refreshHousehold } = useHousehold()
-  const axiosPrivate = useAxiosPrivate()
+  const { members, isLinked } = useHousehold()
+  const { household, setSharedCash } = useAppData()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,15 +28,10 @@ export function SharedCashToggle({ onChanged }: Props) {
     setSaving(true)
     setError(null)
     try {
-      await axiosPrivate.patch("/household/shared-cash", { enabled: !enabled })
-      await refreshHousehold()
+      await setSharedCash(!enabled)
       onChanged?.()
     } catch (err: unknown) {
-      const message =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          : null
-      setError(message ?? "No se pudo cambiar el efectivo compartido")
+      setError(err instanceof Error ? err.message : "No se pudo cambiar el efectivo compartido")
     } finally {
       setSaving(false)
     }

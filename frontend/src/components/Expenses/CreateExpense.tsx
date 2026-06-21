@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { actualDate } from "../../consts"
 import useAuth from "../../hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
-import { useAxiosPrivate } from "../../hooks/useAxiosPrivate"
+import { createExpense } from "@/lib/db/expenses"
 import { Account, Category } from "../../types"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,8 +62,7 @@ export const CreateExpense = ({
     useState<ReceiptParseResult["confidence"] | null>(null)
   const [saving, setSaving] = useState(false)
   const [pendingScan, setPendingScan] = useState<ReceiptParseResult | null>(null)
-  const axiosPrivate = useAxiosPrivate()
-  const { isLinked, getOwnerName } = useHousehold()
+  const { isLinked, getOwnerName, members } = useHousehold()
 
   const handleClose = () => {
     setShow(false)
@@ -131,10 +130,10 @@ export const CreateExpense = ({
 
     setSaving(true)
     try {
-      await axiosPrivate.post(`/${auth.id}/expenses`, JSON.stringify(newExpenseData), {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true,
-      })
+      await createExpense(auth.id, {
+        ...newExpenseData,
+        payment_date: paidDate?.toISOString(),
+      }, members.map((m) => m.id))
       setTitle("")
       setAmount(0)
       setAmountInput("")
