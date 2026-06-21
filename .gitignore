@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 .env
+.env.supabase.local
 backend/.env
 node_modules
 dist

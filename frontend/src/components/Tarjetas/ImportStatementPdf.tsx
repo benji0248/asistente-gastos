@@ -1,10 +1,16 @@
 import { useRef, useState } from "react"
 import { FileUp, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { buttonVariants } from "@/components/ui/button"
 import type { CreditCardStatement } from "@/lib/bbvaStatementParser"
 import { parseBbvaStatement } from "@/lib/bbvaStatementParser"
 import { extractTextFromPdf } from "@/lib/pdfTextExtract"
+import {
+  isPdfFileAsync,
+  PDF_FILE_ACCEPT,
+  pdfValidationErrorMessage,
+} from "@/lib/pdfFile"
+import { cn } from "@/lib/utils"
 
 interface ImportStatementPdfProps {
   onImported: (statement: CreditCardStatement) => void
@@ -17,9 +23,12 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
+  const isDisabled = disabled || loading
+
   const handleFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Solo se admiten archivos PDF del resumen de tu tarjeta.")
+    const isPdf = await isPdfFileAsync(file)
+    if (!isPdf) {
+      setError(pdfValidationErrorMessage(file))
       return
     }
 
@@ -38,7 +47,10 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
         return
       }
 
-      onImported(statement)
+      onImported({
+        ...statement,
+        fileName: statement.fileName || file.name || "resumen.pdf",
+      })
     } catch (err) {
       console.error("Error leyendo PDF", err)
       setError("Ocurrió un error al leer el PDF. Intenta de nuevo.")
@@ -49,25 +61,31 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
     }
   }
 
+  const inputId = "import-statement-pdf-input"
+
   return (
     <div className="space-y-3">
       <input
+        id={inputId}
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf"
-        className="hidden"
+        accept={PDF_FILE_ACCEPT}
+        className="sr-only"
+        disabled={isDisabled}
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file) void handleFile(file)
         }}
       />
 
-      <Button
-        type="button"
-        variant="outline"
-        disabled={disabled || loading}
-        onClick={() => inputRef.current?.click()}
-        className="w-full sm:w-auto"
+      <label
+        htmlFor={inputId}
+        aria-disabled={isDisabled}
+        className={cn(
+          buttonVariants({ variant: "outline" }),
+          "inline-flex w-full min-h-11 cursor-pointer items-center justify-center sm:w-auto",
+          isDisabled && "pointer-events-none opacity-50"
+        )}
       >
         {loading ? (
           <>
@@ -80,7 +98,7 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
             Subir resumen PDF
           </>
         )}
-      </Button>
+      </label>
 
       {error && (
         <Alert variant="destructive">

@@ -11,6 +11,7 @@ import { SectionLoader } from "../layout/SectionLoader"
 import { buildRecentMonths } from "@/lib/monthUtils"
 import { listByMonthPaginated } from "@/lib/db/expenses"
 import { getSelectableCategories } from "@/lib/categoryUtils"
+import { supabase } from "@/lib/supabase"
 
 const EXPENSES_PAGE_SIZE = 10
 
@@ -80,6 +81,38 @@ function Expenses() {
 
     void fetchExpensesForMonth(nowMonth, nowYear, { page: 1, payment: "all" })
   }, [auth?.id, metadataLoading, fetchExpensesForMonth])
+
+  useEffect(() => {
+    if (!auth?.id) return
+
+    const channel = supabase
+      .channel(`expenses-live-${auth.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "expenses",
+          filter: `user_id=eq.${auth.id}`,
+        },
+        () => {
+          const nowMonth = dayjs().month() + 1
+          const nowYear = dayjs().year()
+          setSelectedMonth(nowMonth)
+          setSelectedYear(nowYear)
+          setCurrentPage(1)
+          void fetchExpensesForMonth(nowMonth, nowYear, {
+            page: 1,
+            payment: paymentFilter,
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [auth?.id, fetchExpensesForMonth, paymentFilter])
 
   const handleMonthSelect = async (month: number, year: number) => {
     setSelectedMonth(month)
