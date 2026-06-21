@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils"
 
 interface ImportStatementPdfProps {
-  onImported: (statement: CreditCardStatement) => void
+  onImported: (statement: CreditCardStatement) => void | Promise<void>
   disabled?: boolean
 }
 
@@ -47,12 +47,12 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
         return
       }
 
-      onImported({
+      await onImported({
         ...statement,
         fileName: statement.fileName || file.name || "resumen.pdf",
       })
     } catch (err) {
-      console.error("Error leyendo PDF", err)
+      console.error("Error importando PDF", err)
       setError(pdfReadErrorMessage(err))
     } finally {
       setLoading(false)

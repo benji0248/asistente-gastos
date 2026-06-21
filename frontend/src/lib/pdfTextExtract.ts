@@ -12,6 +12,31 @@ interface PdfOpenResult {
   cleanup: () => Promise<void>
 }
 
+async function safeDestroyTask(task: unknown): Promise<void> {
+  const destroy = (task as { destroy?: () => Promise<void> | void }).destroy
+  if (typeof destroy !== "function") return
+  await destroy.call(task)
+}
+
+async function safeCleanupPage(page: unknown): Promise<void> {
+  const cleanup = (page as { cleanup?: (resetStats?: boolean) => boolean }).cleanup
+  if (typeof cleanup !== "function") return
+  cleanup.call(page)
+}
+
+function textFromPageContent(content: { items?: unknown[] }): string {
+  const items = Array.isArray(content.items) ? content.items : []
+  return items
+    .map((item) => {
+      if (item && typeof item === "object" && "str" in item) {
+        const str = (item as { str?: unknown }).str
+        return typeof str === "string" ? str : ""
+      }
+      return ""
+    })
+    .join(" ")
+}
+
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
@@ -82,7 +107,7 @@ async function openWithLegacy(
   const pdf = await task.promise
   return {
     pdf,
-    cleanup: () => task.destroy(),
+    cleanup: () => safeDestroyTask(task),
   }
 }
 
@@ -112,7 +137,7 @@ async function openWithModern(data: Uint8Array): Promise<PdfOpenResult> {
   const pdf = await task.promise
   return {
     pdf,
-    cleanup: () => task.destroy(),
+    cleanup: () => safeDestroyTask(task),
   }
 }
 
@@ -189,18 +214,24 @@ export async function extractTextFromPdf(
       const page = await pdf.getPage(i)
       try {
         const content = await page.getTextContent()
-        const text = content.items
-          .map((item) => ("str" in item ? item.str : ""))
-          .join(" ")
-        pages.push(text)
+        pages.push(textFromPageContent(content))
         onProgress?.(Math.round((i / pdf.numPages) * 100))
       } finally {
-        page.cleanup()
+        await safeCleanupPage(page)
       }
     }
   } finally {
-    await cleanup()
+    try {
+      await cleanup()
+    } catch (err) {
+      console.warn("No se pudo liberar recursos del PDF", err)
+    }
   }
 
-  return pages.join("\n")
+  const text = pages.join("\n")
+  if (!text.trim()) {
+    throw new Error("El PDF no contiene texto legible")
+  }
+
+  return text
 }
