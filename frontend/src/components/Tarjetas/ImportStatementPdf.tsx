@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
 import type { CreditCardStatement } from "@/lib/bbvaStatementParser"
 import { parseBbvaStatement } from "@/lib/bbvaStatementParser"
-import { extractTextFromPdf } from "@/lib/pdfTextExtract"
+import { extractTextFromPdf, pdfReadErrorMessage } from "@/lib/pdfTextExtract"
 import {
   isPdfFileAsync,
   PDF_FILE_ACCEPT,
@@ -53,7 +53,7 @@ export function ImportStatementPdf({ onImported, disabled }: ImportStatementPdfP
       })
     } catch (err) {
       console.error("Error leyendo PDF", err)
-      setError("Ocurrió un error al leer el PDF. Intenta de nuevo.")
+      setError(pdfReadErrorMessage(err))
     } finally {
       setLoading(false)
       setProgress(0)

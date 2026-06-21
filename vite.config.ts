@@ -5,6 +5,12 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  worker: {
+    format: "es",
+  },
+  optimizeDeps: {
+    include: ["pdfjs-dist"],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './frontend/src'),
