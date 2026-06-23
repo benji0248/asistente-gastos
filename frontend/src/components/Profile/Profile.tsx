@@ -5,7 +5,6 @@ import CreateCategory from "../Expenses/CreateCategory"
 import { ProfileAccounts } from "./profileAccounts"
 import { SharedCashToggle } from "./SharedCashToggle"
 import { CategoryPreferences } from "./CategoryPreferences"
-import { EmailImportSettings } from "./EmailImportSettings"
 import { balanceTotal } from "../../consts"
 import useHousehold from "@/hooks/useHousehold"
 import { Link } from "react-router-dom"
@@ -106,8 +105,6 @@ function Profile() {
           )}
         </CardContent>
       </Card>
-
-      <EmailImportSettings />
 
       <Separator className="opacity-60" />
     </div>

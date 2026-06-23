@@ -16,6 +16,7 @@ dist-ssr
 backend/dist
 *.local
 backend/test-jwt-out.txt
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
