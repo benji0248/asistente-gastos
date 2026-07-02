@@ -12,12 +12,12 @@ Set-Location (Split-Path $PSScriptRoot -Parent)
 
 $token = $env:SUPABASE_ACCESS_TOKEN
 if (-not $token) {
-  $token = Read-Host "Supabase Access Token (dashboard → Account → Access Tokens)"
+  $token = Read-Host "Supabase Access Token (dashboard Account Access Tokens)"
 }
 
 $secretFile = Join-Path $PWD ".env.supabase.local"
 if (-not (Test-Path $secretFile)) {
-  Write-Error "Missing .env.supabase.local — run npm install and generate secret first."
+  Write-Error "Missing .env.supabase.local - generate secret first."
 }
 
 $webhookSecret = $null

@@ -1,8 +1,12 @@
-export function monthDateRange(month: number, year: number) {
-  const start = new Date(year, month - 1, 1).toISOString()
-  const end = new Date(year, month, 0, 23, 59, 59, 999).toISOString()
-  return { start, end }
-}
+export function monthDateRange(month: number, year: number) {
+
+  const start = new Date(Date.UTC(year, month - 1, 1)).toISOString()
+
+  const end = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString()
+
+  return { start, end }
+
+}
 
 /** First day of month as YYYY-MM-DD (for statement_month column). */
 export function statementMonthDate(year: number, month: number): string {
