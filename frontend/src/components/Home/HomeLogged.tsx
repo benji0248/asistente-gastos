@@ -26,7 +26,7 @@ import { listAll } from "@/lib/db/expenses"
 export const HomeLogged = () => {
   const { auth } = useAuth()
   const { isLinked, household, members } = useHousehold()
-  const { accounts, loading: accountsLoading } = useAppData()
+  const { accounts, loading: accountsLoading, refreshAccounts } = useAppData()
 
   const [expenses, setExpenses] = useState<listOfExpenses>([])
   const [expensesLoading, setExpensesLoading] = useState(true)
@@ -52,6 +52,11 @@ export const HomeLogged = () => {
       cancelled = true
     }
   }, [auth?.id])
+
+  useEffect(() => {
+    if (!auth?.id) return
+    void refreshAccounts()
+  }, [auth?.id, refreshAccounts])
 
   const reloadExpenses = useCallback(async () => {
     if (!auth?.id) return

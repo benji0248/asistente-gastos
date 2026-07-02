@@ -17,7 +17,7 @@ import { PageHeader } from "../layout/PageHeader"
 import { SectionLoader } from "../layout/SectionLoader"
 import { Loader2 } from "lucide-react"
 import { formatMoney } from "@/lib/formatMoney"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 
 function Profile() {
   const { auth } = useAuth()
@@ -34,6 +34,11 @@ function Profile() {
     () => allCategories.filter((c) => c.user_id === auth?.id),
     [allCategories, auth?.id]
   )
+
+  useEffect(() => {
+    if (!auth?.id) return
+    void refreshAccounts()
+  }, [auth?.id, refreshAccounts])
 
   return (
     <div className="space-y-6 sm:space-y-10">
