@@ -189,7 +189,7 @@ CREATE POLICY accounts_update ON accounts FOR UPDATE
 CREATE POLICY accounts_delete ON accounts FOR DELETE
   USING (user_id = auth.uid() AND household_id IS NULL);
 
--- Categories (own + household members for shared picker)
+-- Categories (shared within household via my_visible_user_ids)
 CREATE POLICY categories_select ON categories FOR SELECT
   USING (user_id = ANY(public.my_visible_user_ids()));
 
@@ -197,10 +197,10 @@ CREATE POLICY categories_insert ON categories FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY categories_update ON categories FOR UPDATE
-  USING (user_id = auth.uid());
+  USING (user_id = ANY(public.my_visible_user_ids()));
 
 CREATE POLICY categories_delete ON categories FOR DELETE
-  USING (user_id = auth.uid());
+  USING (user_id = ANY(public.my_visible_user_ids()));
 
 -- Credit card statements
 CREATE POLICY statements_select ON credit_card_statements FOR SELECT

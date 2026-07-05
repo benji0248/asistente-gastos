@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react"
 import { Check, Eye, EyeOff, Pencil, X } from "lucide-react"
-import useAuth from "../../hooks/useAuth"
 import {
   deleteCategory as removeCategory,
   updateCategory,
@@ -19,24 +18,21 @@ import { cn } from "@/lib/utils"
 interface Props {
   categories: Category[]
   onChange: (categories: Category[]) => void
+  isLinked?: boolean
 }
 
-export function CategoryPreferences({ categories, onChange }: Props) {
-  const { auth } = useAuth()
+export function CategoryPreferences({ categories, onChange, isLinked }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
 
-  const ownCategories = useMemo(
-    () =>
-      sortCategoriesForProfile(
-        categories.filter((c) => c.user_id === auth?.id)
-      ),
-    [categories, auth?.id]
+  const sharedCategories = useMemo(
+    () => sortCategoriesForProfile(categories),
+    [categories]
   )
 
   const nameCounts = useMemo(
-    () => countCategoryNameOccurrences(ownCategories),
-    [ownCategories]
+    () => countCategoryNameOccurrences(sharedCategories),
+    [sharedCategories]
   )
 
   const toggleVisibility = async (category: Category) => {
@@ -83,9 +79,8 @@ export function CategoryPreferences({ categories, onChange }: Props) {
   }
 
   const handleDeleteCategory = async (category: Category) => {
-    const label = category.is_system ? "base" : "personalizada"
     const confirmed = window.confirm(
-      `¿Eliminar la categoría ${label} «${category.name}»? Los gastos que la usen quedarán sin categoría.`
+      `¿Eliminar la categoría «${category.name}»? Los gastos que la usen quedarán sin categoría.`
     )
     if (!confirmed) return
 
@@ -98,16 +93,14 @@ export function CategoryPreferences({ categories, onChange }: Props) {
     }
   }
 
-  if (ownCategories.length === 0) {
+  if (sharedCategories.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No hay categorías. Se crearán las categorías base al iniciar sesión.
+        No hay categorías todavía. Creá una con el botón de arriba para empezar
+        a clasificar tus gastos.
       </p>
     )
   }
-
-  const systemCategories = ownCategories.filter((c) => c.is_system)
-  const customCategories = ownCategories.filter((c) => !c.is_system)
 
   const renderCategoryRow = (category: Category) => {
     const isEditing = editingId === category.id
@@ -166,11 +159,6 @@ export function CategoryPreferences({ categories, onChange }: Props) {
             >
               {category.name}
             </span>
-            {category.is_system && (
-              <Badge variant="secondary" className="rounded-full text-[10px]">
-                Base
-              </Badge>
-            )}
             {isDuplicate && (
               <Badge variant="outline" className="rounded-full text-[10px]">
                 Duplicada
@@ -223,26 +211,13 @@ export function CategoryPreferences({ categories, onChange }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Acá ves todas tus categorías, incluidas las del seed y las que creaste.
-        Podés renombrarlas, ocultarlas o eliminar duplicados. En los formularios
-        de gastos solo aparece una por nombre.
+        {isLinked
+          ? "Categorías compartidas con tu hogar. Cualquier integrante puede crearlas, renombrarlas u ocultarlas. En los formularios de gastos solo aparece una por nombre."
+          : "Tus categorías de gasto. Podés renombrarlas, ocultarlas o eliminarlas."}
       </p>
-      {systemCategories.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Categorías base
-          </h3>
-          <div className="space-y-2">{systemCategories.map(renderCategoryRow)}</div>
-        </div>
-      )}
-      {customCategories.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Tus categorías
-          </h3>
-          <div className="space-y-2">{customCategories.map(renderCategoryRow)}</div>
-        </div>
-      )}
+      <div className="space-y-2">
+        {sharedCategories.map(renderCategoryRow)}
+      </div>
     </div>
   )
 }

@@ -17,23 +17,18 @@ import { PageHeader } from "../layout/PageHeader"
 import { SectionLoader } from "../layout/SectionLoader"
 import { Loader2 } from "lucide-react"
 import { formatMoney } from "@/lib/formatMoney"
-import { useEffect, useMemo } from "react"
+import { useEffect } from "react"
 
 function Profile() {
   const { auth } = useAuth()
   const { isLinked, household } = useHousehold()
   const {
     accounts,
-    categories: allCategories,
+    categories,
     loading,
     refreshAccounts,
     refreshCategories,
   } = useAppData()
-
-  const categories = useMemo(
-    () => allCategories.filter((c) => c.user_id === auth?.id),
-    [allCategories, auth?.id]
-  )
 
   useEffect(() => {
     if (!auth?.id) return
@@ -106,6 +101,7 @@ function Profile() {
             <CategoryPreferences
               categories={categories}
               onChange={() => void refreshCategories()}
+              isLinked={isLinked}
             />
           )}
         </CardContent>

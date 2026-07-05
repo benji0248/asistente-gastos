@@ -53,7 +53,6 @@ export const EditExpense = ({ expense, categories, accounts, onExpenseMutated }:
 
   const pickerCategories = getCategoriesForPicker(
     categories,
-    auth?.id ?? "",
     expense.category_id
   )
 

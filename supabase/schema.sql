@@ -116,22 +116,6 @@ BEGIN
   INSERT INTO public.accounts (user_id, type, balance, description)
   VALUES (NEW.id, 'cash', 0, 'efectivo');
 
-  INSERT INTO public.categories (user_id, name, is_system, is_enabled)
-  SELECT NEW.id, seed.name, true, true
-  FROM (
-    VALUES
-      ('Alimentación'),
-      ('Transporte'),
-      ('Vivienda'),
-      ('Salud'),
-      ('Entretenimiento'),
-      ('Educación'),
-      ('Servicios'),
-      ('Ropa'),
-      ('Conveniencia'),
-      ('Otros')
-  ) AS seed(name);
-
   RETURN NEW;
 END;
 $$;

@@ -157,8 +157,8 @@ function Expenses() {
   }
 
   const selectableCategories = useMemo(
-    () => getSelectableCategories(categories, auth?.id ?? ""),
-    [categories, auth?.id]
+    () => getSelectableCategories(categories),
+    [categories]
   )
 
   return (

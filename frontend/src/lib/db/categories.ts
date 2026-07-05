@@ -10,10 +10,7 @@ export async function listCategories(activeOnly = false): Promise<Category[]> {
     list = list.filter((c) => c.is_enabled !== false)
   }
 
-  return list.sort((a, b) => {
-    if (a.is_system !== b.is_system) return a.is_system ? -1 : 1
-    return a.name.localeCompare(b.name)
-  })
+  return list.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function createCategory(userId: string, name: string): Promise<Category> {

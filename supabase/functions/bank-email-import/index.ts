@@ -108,10 +108,12 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, status: "duplicate" })
   }
 
+  const visibleUserIds = await getVisibleUserIds(supabase, settings.user_id)
+
   const { data: categories, error: categoriesError } = await supabase
     .from("categories")
     .select("id, name, user_id, is_enabled, is_system")
-    .eq("user_id", settings.user_id)
+    .in("user_id", visibleUserIds)
     .eq("is_enabled", true)
 
   if (categoriesError) {
@@ -182,4 +184,29 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   })
+}
+
+async function getVisibleUserIds(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<string[]> {
+  const { data: membership } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .eq("status", "accepted")
+    .maybeSingle()
+
+  if (!membership?.household_id) {
+    return [userId]
+  }
+
+  const { data: members } = await supabase
+    .from("household_members")
+    .select("user_id")
+    .eq("household_id", membership.household_id)
+    .eq("status", "accepted")
+
+  const ids = (members ?? []).map((m) => m.user_id as string)
+  return ids.length > 0 ? ids : [userId]
 }

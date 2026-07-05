@@ -1,6 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react"
 import { useAppData } from "@/context/AppDataProvider"
-import useAuth from "@/hooks/useAuth"
 import { getSelectableCategories } from "@/lib/categoryUtils"
 import {
   createRecurringExpense,
@@ -61,8 +60,8 @@ export function HouseholdRecurringExpenses() {
   const { categories: contextCategories } = useAppData()
   const [items, setItems] = useState<HouseholdRecurringExpense[]>([])
   const categories = useMemo(
-    () => getSelectableCategories(contextCategories, auth?.id ?? ""),
-    [contextCategories, auth?.id]
+    () => getSelectableCategories(contextCategories),
+    [contextCategories]
   )
   const categoryMap = useMemo(
     () => new Map(contextCategories.map((category) => [String(category.id), category.name])),
