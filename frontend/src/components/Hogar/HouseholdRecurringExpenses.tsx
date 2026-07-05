@@ -56,7 +56,6 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function HouseholdRecurringExpenses() {
-  const { auth } = useAuth()
   const { categories: contextCategories } = useAppData()
   const [items, setItems] = useState<HouseholdRecurringExpense[]>([])
   const categories = useMemo(
