@@ -159,7 +159,7 @@ export function BatchReceiptReview({
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
+                  <SelectItem key={account.id} value={String(account.id)}>
                     {isLinked
                       ? `@${getOwnerName(account.user_id)} - ${account.description}`
                       : account.description}
@@ -262,7 +262,7 @@ export function BatchReceiptReview({
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
+                            <SelectItem key={cat.id} value={String(cat.id)}>
                               {cat.name}
                             </SelectItem>
                           ))}

@@ -202,7 +202,11 @@ export function EmailImportSettings() {
         <div className="space-y-2">
           <Label htmlFor="email-import-account">Cuenta destino</Label>
           <Select
-            value={settings?.default_account_id ? String(settings.default_account_id) : ""}
+            value={
+              settings?.default_account_id
+                ? String(settings.default_account_id)
+                : undefined
+            }
             onValueChange={(value) => void handleAccountChange(value)}
             disabled={saving || userAccounts.length === 0}
           >

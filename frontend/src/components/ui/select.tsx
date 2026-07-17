@@ -4,7 +4,35 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
+/**
+ * Radix Select compares values with === and also syncs through a hidden
+ * native <select>, whose DOM values are always strings. If callers pass
+ * numeric ids (e.g. Supabase SERIAL), the controlled value becomes a string
+ * while SelectItem keeps a number → isSelected is false and SelectValue goes blank.
+ */
+function toSelectValue(
+  value: string | number | undefined
+): string | undefined {
+  return value === undefined ? undefined : String(value)
+}
+
+type SelectProps = Omit<
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>,
+  "value" | "defaultValue"
+> & {
+  value?: string | number
+  defaultValue?: string | number
+}
+
+const Select = ({ value, defaultValue, ...props }: SelectProps) => (
+  <SelectPrimitive.Root
+    {...props}
+    value={toSelectValue(value)}
+    defaultValue={toSelectValue(defaultValue)}
+  />
+)
+Select.displayName = "Select"
+
 const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
 
@@ -15,7 +43,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground",
+      "flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -100,16 +128,24 @@ const SelectLabel = React.forwardRef<
 ))
 SelectLabel.displayName = SelectPrimitive.Label.displayName
 
+type SelectItemProps = Omit<
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>,
+  "value"
+> & {
+  value: string | number
+}
+
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+  SelectItemProps
+>(({ className, children, value, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
       "relative flex w-full cursor-default select-none items-center rounded-lg py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
+    value={String(value)}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">

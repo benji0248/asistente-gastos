@@ -114,7 +114,7 @@ export const TransferFounds = ({
             <div className="space-y-2">
               <Label>Cuenta destino</Label>
               <Select
-                value={accountToTransfer}
+                value={accountToTransfer || undefined}
                 onValueChange={setAccountToTransfer}
                 required
               >
@@ -123,7 +123,7 @@ export const TransferFounds = ({
                 </SelectTrigger>
                 <SelectContent>
                   {listOfAccounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
+                    <SelectItem key={acc.id} value={String(acc.id)}>
                       {isLinked
                         ? `@${getOwnerName(acc.user_id)} - ${acc.description}`
                         : acc.description}

@@ -384,17 +384,11 @@ export function RegisterPaymentDialog({
                   <SelectContent>
 
                     {accounts.map((account) => (
-
-                      <SelectItem key={account.id} value={account.id}>
-
+                      <SelectItem key={account.id} value={String(account.id)}>
                         {isLinked
-
                           ? `@${getOwnerName(account.user_id)} - ${account.description}`
-
                           : account.description}
-
                       </SelectItem>
-
                     ))}
 
                   </SelectContent>
