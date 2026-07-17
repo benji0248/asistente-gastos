@@ -137,8 +137,8 @@ export async function getAvailableMonths(): Promise<{ month: number; year: numbe
 
   for (const row of data ?? []) {
     const date = new Date(row.created_at)
-    const month = date.getMonth() + 1
-    const year = date.getFullYear()
+    const month = date.getUTCMonth() + 1
+    const year = date.getUTCFullYear()
     const key = `${year}-${month}`
     if (!seen.has(key)) {
       seen.add(key)

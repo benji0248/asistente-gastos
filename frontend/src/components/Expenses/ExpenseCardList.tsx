@@ -147,8 +147,10 @@ export function ExpenseCardList({
         <ExpenseCard
           key={expense.id}
           expense={expense}
-          categoryName={categoryMap.get(expense.category_id) || "Sin Categoría"}
-          accountName={accountMap.get(expense.account_id) || "Sin tipo"}
+          categoryName={
+            categoryMap.get(String(expense.category_id)) || "Sin Categoría"
+          }
+          accountName={accountMap.get(String(expense.account_id)) || "Sin tipo"}
           categories={categories}
           accounts={accounts}
           showOwner={showOwner}
