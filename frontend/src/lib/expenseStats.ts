@@ -2,6 +2,7 @@ import dayjs from "dayjs"
 import "dayjs/locale/es"
 import type { Account, Category, Expense } from "@/types"
 import type { MonthYear } from "@/lib/monthUtils"
+import { paidContribution } from "@/lib/expenseUpdate"
 
 dayjs.locale("es")
 
@@ -16,10 +17,7 @@ export function filterExpensesByMonth(expenses: Expense[], month: number, year: 
 }
 
 export function sumPaid(expenses: Expense[]): number {
-  return expenses.reduce((total, expense) => {
-    if (expense.is_paid) return total + Number(expense.amount)
-    return total + Number(expense.amount_paid ?? 0)
-  }, 0)
+  return expenses.reduce((total, expense) => total + paidContribution(expense), 0)
 }
 
 export function sumPending(expenses: Expense[]): number {
@@ -69,16 +67,23 @@ export function categoryBreakdown(
   month: number,
   year: number
 ): CategoryStat[] {
-  const categoryMap = new Map(categories.map((category) => [category.id, category.name]))
-  const monthPaid = filterExpensesByMonth(expenses, month, year).filter((expense) => expense.is_paid)
-  const total = sumPaid(monthPaid)
+  const categoryMap = new Map(
+    categories.map((category) => [String(category.id), category.name])
+  )
+  const monthExpenses = filterExpensesByMonth(expenses, month, year)
+  const total = sumPaid(monthExpenses)
 
   const totals = new Map<string, { amount: number; count: number }>()
-  for (const expense of monthPaid) {
-    const key = expense.category_id || "sin-categoria"
+  for (const expense of monthExpenses) {
+    const amount = paidContribution(expense)
+    if (amount <= 0) continue
+    const key =
+      expense.category_id != null && expense.category_id !== ""
+        ? String(expense.category_id)
+        : "sin-categoria"
     const current = totals.get(key) ?? { amount: 0, count: 0 }
     totals.set(key, {
-      amount: current.amount + Number(expense.amount),
+      amount: current.amount + amount,
       count: current.count + 1,
     })
   }
@@ -168,21 +173,26 @@ export function accountBreakdown(
 ): AccountStat[] {
   const accountMap = new Map(
     accounts.map((account) => [
-      account.id,
+      String(account.id),
       getOwnerLabel
         ? `${account.description} (${getOwnerLabel(account.user_id)})`
         : account.description,
     ])
   )
-  const monthPaid = filterExpensesByMonth(expenses, month, year).filter((expense) => expense.is_paid)
-  const total = sumPaid(monthPaid)
+  const monthExpenses = filterExpensesByMonth(expenses, month, year)
+  const total = sumPaid(monthExpenses)
 
   const totals = new Map<string, { amount: number; count: number }>()
-  for (const expense of monthPaid) {
-    const key = expense.account_id || "sin-cuenta"
+  for (const expense of monthExpenses) {
+    const amount = paidContribution(expense)
+    if (amount <= 0) continue
+    const key =
+      expense.account_id != null && expense.account_id !== ""
+        ? String(expense.account_id)
+        : "sin-cuenta"
     const current = totals.get(key) ?? { amount: 0, count: 0 }
     totals.set(key, {
-      amount: current.amount + Number(expense.amount),
+      amount: current.amount + amount,
       count: current.count + 1,
     })
   }
@@ -212,14 +222,16 @@ export function memberBreakdown(
   year: number,
   getOwnerLabel: (userId: string) => string
 ): MemberStat[] {
-  const monthPaid = filterExpensesByMonth(expenses, month, year).filter((expense) => expense.is_paid)
-  const total = sumPaid(monthPaid)
+  const monthExpenses = filterExpensesByMonth(expenses, month, year)
+  const total = sumPaid(monthExpenses)
 
   const totals = new Map<string, { amount: number; count: number }>()
-  for (const expense of monthPaid) {
+  for (const expense of monthExpenses) {
+    const amount = paidContribution(expense)
+    if (amount <= 0) continue
     const current = totals.get(expense.user_id) ?? { amount: 0, count: 0 }
     totals.set(expense.user_id, {
-      amount: current.amount + Number(expense.amount),
+      amount: current.amount + amount,
       count: current.count + 1,
     })
   }
@@ -251,10 +263,12 @@ export function dailySpendSeries(expenses: Expense[], month: number, year: numbe
   }))
 
   for (const expense of filterExpensesByMonth(expenses, month, year)) {
-    if (!expense.is_paid || !expense.created_at) continue
+    if (!expense.created_at) continue
+    const amount = paidContribution(expense)
+    if (amount <= 0) continue
     const day = dayjs(expense.created_at).date()
     if (day >= 1 && day <= daysInMonth) {
-      series[day - 1].amount += Number(expense.amount)
+      series[day - 1].amount += amount
     }
   }
 
