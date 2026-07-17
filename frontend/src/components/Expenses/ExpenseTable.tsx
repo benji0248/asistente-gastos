@@ -32,11 +32,11 @@ export const ExpenseTable = ({
 }: Props) => {
   const { isLinked, getOwnerName } = useHousehold()
   const categoryMap = new Map(
-    categories.map((category) => [category.id, category.name])
+    categories.map((category) => [String(category.id), category.name])
   )
   const accountMap = new Map(
     accounts.map((account) => [
-      account.id,
+      String(account.id),
       isLinked
         ? `@${getOwnerName(account.user_id)} - ${account.description}`
         : account.description,

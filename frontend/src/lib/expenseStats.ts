@@ -3,13 +3,17 @@ import "dayjs/locale/es"
 import type { Account, Category, Expense } from "@/types"
 import type { MonthYear } from "@/lib/monthUtils"
 import { paidContribution } from "@/lib/expenseUpdate"
+import { belongsToUtcMonth } from "@/lib/db/dateRange"
 
 dayjs.locale("es")
 
+/**
+ * Month membership must use UTC, same as Gastos (`monthDateRange`).
+ * Household recurring expenses are inserted with created_at = 1st of month 00:00 UTC;
+ * in AR (UTC-3) that is still the previous local evening, so local dayjs would drop them.
+ */
 export function expenseBelongsToMonth(expense: Expense, month: number, year: number): boolean {
-  if (!expense.created_at) return false
-  const date = dayjs(expense.created_at)
-  return date.month() + 1 === month && date.year() === year
+  return belongsToUtcMonth(expense.created_at, month, year)
 }
 
 export function filterExpensesByMonth(expenses: Expense[], month: number, year: number): Expense[] {

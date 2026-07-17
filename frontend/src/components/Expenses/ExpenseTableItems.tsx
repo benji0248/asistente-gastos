@@ -32,8 +32,9 @@ export const ExpenseTableItems = ({
 }: Props) => {
   const { getOwnerName } = useHousehold()
   const [payDialogOpen, setPayDialogOpen] = useState(false)
-  const categoryName = categoryMap.get(expense.category_id) || "Sin Categoría"
-  const accountName = accountMap.get(expense.account_id) || "Sin tipo"
+  const categoryName =
+    categoryMap.get(String(expense.category_id)) || "Sin Categoría"
+  const accountName = accountMap.get(String(expense.account_id)) || "Sin tipo"
 
   return (
     <>
