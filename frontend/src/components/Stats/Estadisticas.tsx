@@ -383,7 +383,7 @@ function Estadisticas() {
         <CardContent className="space-y-5 px-4 pb-4 sm:px-6 sm:pb-6">
           {categoriesStats.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No hay gastos pagados en este mes para analizar categorías.
+              No hay montos pagados en este mes para analizar categorías.
             </p>
           ) : (
             categoriesStats.map((category, index) => (

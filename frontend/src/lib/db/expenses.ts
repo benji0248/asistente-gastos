@@ -6,6 +6,10 @@ import type {
 } from '@/types'
 import { supabase, throwIfError } from './client'
 import { monthDateRange } from './dateRange'
+import {
+  buildExpenseUpdatePatch,
+  type ExpenseUpdateInput,
+} from '@/lib/expenseUpdate'
 
 export type ExpensePaymentFilter = 'all' | 'paid' | 'unpaid'
 
@@ -194,24 +198,31 @@ async function payExpenseViaBalance(accountId: string, amount: number) {
 
 export async function updateExpense(
   expenseId: string,
-  updates: Partial<Expense>
+  updates: ExpenseUpdateInput
 ): Promise<void> {
+  const { data: current, error: fetchError } = await supabase
+    .from('expenses')
+    .select(
+      'title, amount, is_paid, amount_paid, payment_date, category_id, account_id'
+    )
+    .eq('id', expenseId)
+    .single()
+  throwIfError(fetchError)
+  if (!current) {
+    throw new Error('No se encontró el gasto a editar')
+  }
+
+  const patch = buildExpenseUpdatePatch(current as Expense, updates)
   const { error } = await supabase
     .from('expenses')
-    .update({
-      title: updates.title,
-      amount: updates.amount,
-      is_paid: updates.is_paid,
-      category_id: updates.category_id || null,
-      account_id: updates.account_id || null,
-    })
+    .update(patch)
     .eq('id', expenseId)
   throwIfError(error)
 
-  if (updates.household_recurring_expense_id && updates.amount) {
+  if (updates.household_recurring_expense_id && patch.amount) {
     await supabase
       .from('household_recurring_expenses')
-      .update({ fixed_amount: updates.amount })
+      .update({ fixed_amount: patch.amount })
       .eq('id', updates.household_recurring_expense_id)
   }
 }
