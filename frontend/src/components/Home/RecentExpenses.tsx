@@ -2,7 +2,6 @@ import { Expense } from "../../types"
 import { formattedDate } from "../../consts"
 import { DeleteModalExpense } from "../Expenses/DeleteModalExpense"
 import { TableCell, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import useHousehold from "@/hooks/useHousehold"
 import { formatMoney } from "@/lib/formatMoney"
 import { CheckCircle2, Clock } from "lucide-react"
@@ -71,27 +70,48 @@ export const RecentExpenseCard = ({ expense, showOwner = false, onDeleted }: Pro
   )
 }
 
-export const RecentExpenses = ({ expense, showOwner = false }: Props) => {
+export const RecentExpenses = ({ expense, showOwner = false, onDeleted }: Props) => {
   const { getOwnerName } = useHousehold()
+  const dateLabel = formattedDate(expense.payment_date)
+    ? formattedDate(expense.payment_date)
+    : "Sin pagar"
+
   return (
-    <TableRow key={expense.id}>
-      <TableCell className="text-muted-foreground">
-        {formattedDate(expense.payment_date)
-          ? formattedDate(expense.payment_date)
-          : "Sin pagar"}
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="capitalize truncate">{expense.title}</span>
-          <DeleteModalExpense id={expense.id} title={expense.title} />
+    <TableRow>
+      <TableCell className="min-w-0 w-[55%] max-w-0 py-3 pl-4 pr-2">
+        <div className="min-w-0">
+          <p className="truncate font-medium capitalize leading-snug">{expense.title}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <span
+              className={cn(
+                "font-medium",
+                expense.is_paid ? "text-muted-foreground" : "text-destructive"
+              )}
+            >
+              {dateLabel}
+            </span>
+            {showOwner && (
+              <span>
+                {" "}
+                · @{getOwnerName(expense.user_id)}
+              </span>
+            )}
+          </p>
         </div>
       </TableCell>
-      {showOwner && (
-        <TableCell>
-          <Badge variant="secondary">@{getOwnerName(expense.user_id)}</Badge>
-        </TableCell>
-      )}
-      <TableCell className="font-medium">${formatMoney(expense.amount)}</TableCell>
+      <TableCell className="w-[45%] py-3 pl-2 pr-3 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <span className="shrink-0 font-medium tabular-nums">
+            ${formatMoney(expense.amount)}
+          </span>
+          <DeleteModalExpense
+            id={expense.id}
+            title={expense.title}
+            onExpenseMutated={onDeleted}
+            className="h-8 w-8"
+          />
+        </div>
+      </TableCell>
     </TableRow>
   )
 }
