@@ -183,16 +183,16 @@ export const HomeLogged = () => {
       </div>
 
       {!expensesLoading && sortAndFilterExpenses.length > 0 && (
-        <Card className="lg:hidden">
-          <CardHeader>
+        <Card className="overflow-hidden lg:hidden">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Lista rápida</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="overflow-hidden p-0">
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Gasto</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="w-[55%] pl-4 pr-2">Gasto</TableHead>
+                  <TableHead className="w-[45%] pl-2 pr-3 text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -201,6 +201,7 @@ export const HomeLogged = () => {
                     key={expense.id}
                     expense={expense}
                     showOwner={isLinked}
+                    onDeleted={reloadExpenses}
                   />
                 ))}
               </TableBody>
