@@ -191,8 +191,8 @@ export const HomeLogged = () => {
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[55%]">Gasto</TableHead>
-                  <TableHead className="w-[45%] text-right">Monto</TableHead>
+                  <TableHead className="w-[55%] pl-4 pr-2">Gasto</TableHead>
+                  <TableHead className="w-[45%] pl-2 pr-3 text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
