@@ -7,6 +7,20 @@ export function formatMoney(amount: number): string {
   })
 }
 
+/** Máscara fija para no filtrar la magnitud del monto. */
+export const PRIVATE_MONEY_MASK = "$••••••"
+
+export function formatPrivateMoney(
+  amount: number,
+  visible: boolean,
+  options?: { prefix?: boolean }
+): string {
+  if (!visible) return PRIVATE_MONEY_MASK
+
+  const formatted = formatMoney(amount)
+  return options?.prefix === false ? formatted : `$${formatted}`
+}
+
 export function formatMoneyInput(amount: number): string {
   return amount > 0 ? formatMoney(amount) : ""
 }

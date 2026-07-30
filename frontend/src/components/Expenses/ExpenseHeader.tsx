@@ -11,10 +11,12 @@ import useAuth from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/layout/PageHeader"
+import { PrivacyToggle } from "@/components/layout/PrivacyToggle"
 import { MonthPicker } from "../Stats/MonthPicker"
 import type { MonthYear } from "@/lib/monthUtils"
 import { BarChart3 } from "lucide-react"
-import { formatMoney } from "@/lib/formatMoney"
+import { formatPrivateMoney } from "@/lib/formatMoney"
+import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 
 dayjs.locale("es")
 
@@ -46,6 +48,7 @@ export const ExpenseHeader = ({
   onCategoryCreated,
 }: Props) => {
   const { auth } = useAuth()
+  const { amountsVisible } = usePrivacyAmounts()
   const [scanResult, setScanResult] = useState<ReceiptParseResult | null>(null)
 
   const monthLabel =
@@ -72,7 +75,12 @@ export const ExpenseHeader = ({
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Gastos" description={monthLabel} />
+      <PageHeader
+        title="Gastos"
+        description={monthLabel}
+        action={<PrivacyToggle />}
+        actionClassName="w-auto self-end"
+      />
 
       <div className="rounded-2xl border border-border/50 bg-muted/20 p-2.5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -108,7 +116,7 @@ export const ExpenseHeader = ({
         <div className="flex min-w-0 flex-col gap-1 rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border/40">
           <span className="text-xs text-muted-foreground">Pagado</span>
           <span className="truncate text-sm font-semibold tabular-nums">
-            ${formatMoney(paidTotal)}
+            {formatPrivateMoney(paidTotal, amountsVisible)}
           </span>
         </div>
         <div className="flex min-w-0 flex-col gap-1 rounded-xl bg-muted/40 px-3 py-2.5 ring-1 ring-border/40">
@@ -119,13 +127,13 @@ export const ExpenseHeader = ({
               pendingTotal > 0 ? "text-destructive" : "text-foreground",
             ].join(" ")}
           >
-            ${formatMoney(pendingTotal)}
+            {formatPrivateMoney(pendingTotal, amountsVisible)}
           </span>
         </div>
         <div className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 rounded-xl bg-muted/40 px-3 py-3 ring-1 ring-border/40 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1 sm:py-2.5">
           <span className="shrink-0 text-sm text-muted-foreground">Total del mes</span>
           <span className="min-w-0 truncate text-right text-xl font-bold tabular-nums sm:text-left sm:text-sm sm:font-semibold">
-            ${formatMoney(monthTotal)}
+            {formatPrivateMoney(monthTotal, amountsVisible)}
           </span>
         </div>
       </div>
