@@ -12,25 +12,33 @@ export function formatMoneyInput(amount: number): string {
 }
 
 export function normalizeMoneyInput(value: string): string {
-  const normalized = value.replace(/\./g, ",").replace(/[^\d,-]/g, "")
-  const [integerPart, ...decimalParts] = normalized.split(",")
+  const normalized = value.replace(/\./g, "").replace(/[^\d,-]/g, "")
+  const isNegative = normalized.startsWith("-")
+  const unsigned = normalized.replace(/-/g, "")
+  const [rawIntegerPart, ...decimalParts] = unsigned.split(",")
+  const integerPart = rawIntegerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
   const decimalPart = decimalParts.join("")
+  const sign = isNegative ? "-" : ""
 
-  if (decimalParts.length === 0) return integerPart
+  if (decimalParts.length === 0) return `${sign}${integerPart}`
 
-  return `${integerPart},${decimalPart.slice(0, 2)}`
+  return `${sign}${integerPart},${decimalPart.slice(0, 2)}`
 }
 
 export function parseMoneyInput(value: string): number {
-  const cleaned = value.trim().replace(/[^\d,.-]/g, "")
+  const cleaned = value.trim().replace(/\./g, "").replace(/[^\d,-]/g, "")
 
   if (!cleaned) return 0
 
-  const normalized = cleaned.includes(",")
-    ? cleaned.replace(/\./g, "").replace(",", ".")
-    : cleaned
+  const isNegative = cleaned.startsWith("-")
+  const unsigned = cleaned.replace(/-/g, "")
+  const [integerPart, ...decimalParts] = unsigned.split(",")
+  const decimalPart = decimalParts.join("").slice(0, 2)
+  const normalized = `${isNegative ? "-" : ""}${integerPart || "0"}${
+    decimalParts.length > 0 ? `.${decimalPart}` : ""
+  }`
 
-  const parsed = Number.parseFloat(normalized)
+  const parsed = Number(normalized)
   return Number.isFinite(parsed) ? parsed : 0
 }
 

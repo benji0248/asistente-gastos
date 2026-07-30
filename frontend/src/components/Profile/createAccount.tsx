@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { normalizeMoneyInput, parseMoneyInput } from "@/lib/formatMoney"
 
 function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) {
   const { auth } = useAuth()
@@ -41,7 +42,7 @@ function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) 
 
     const newAccountData = {
       type: type,
-      balance: Number(balance),
+      balance: parseMoneyInput(balance),
       description: description,
       owner_user_id: ownerUserId || auth.id,
     }
@@ -129,7 +130,8 @@ function CreateAccount({ onAccountsChange }: { onAccountsChange?: () => void }) 
                 placeholder="0"
                 name="balance"
                 value={balance}
-                onChange={(e) => setBalance(e.target.value)}
+                inputMode="decimal"
+                onChange={(e) => setBalance(normalizeMoneyInput(e.target.value))}
                 required
               />
             </div>
