@@ -2,13 +2,16 @@ import { listOfAccounts } from "../../types"
 import useHousehold from "@/hooks/useHousehold"
 import { Badge } from "@/components/ui/badge"
 import { formatMoney } from "@/lib/formatMoney"
+import { TransferFounds } from "./transferFounds"
 
 interface Props {
   accounts: listOfAccounts
+  onAccountsChange?: () => void
 }
 
-export const AccordionAccounts = ({ accounts }: Props) => {
+export const AccordionAccounts = ({ accounts, onAccountsChange }: Props) => {
   const { isLinked, getOwnerName } = useHousehold()
+  const canTransfer = accounts.length > 1
 
   if (!accounts.length) {
     return (
@@ -31,9 +34,19 @@ export const AccordionAccounts = ({ accounts }: Props) => {
               </Badge>
             )}
           </div>
-          <span className="text-base font-semibold text-foreground shrink-0 tabular-nums sm:text-lg">
-            ${formatMoney(account.balance)}
-          </span>
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
+            <span className="text-base font-semibold text-foreground shrink-0 tabular-nums sm:text-lg">
+              ${formatMoney(account.balance)}
+            </span>
+            {canTransfer && (
+              <TransferFounds
+                account={account}
+                listOfAccounts={accounts}
+                onAccountsChange={onAccountsChange}
+                compact
+              />
+            )}
+          </div>
         </div>
       ))}
     </div>
