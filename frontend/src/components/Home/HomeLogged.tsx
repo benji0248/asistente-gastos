@@ -18,15 +18,18 @@ import {
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle2, Clock, House, Wallet } from "lucide-react"
 import { PageHeader } from "../layout/PageHeader"
+import { PrivacyToggle } from "../layout/PrivacyToggle"
 import { StatCard } from "../layout/StatCard"
 import { SectionLoader } from "../layout/SectionLoader"
-import { formatMoney } from "@/lib/formatMoney"
+import { formatPrivateMoney } from "@/lib/formatMoney"
 import { listAll } from "@/lib/db/expenses"
+import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 
 export const HomeLogged = () => {
   const { auth } = useAuth()
   const { isLinked, household, members } = useHousehold()
   const { accounts, loading: accountsLoading, refreshAccounts } = useAppData()
+  const { amountsVisible } = usePrivacyAmounts()
 
   const [expenses, setExpenses] = useState<listOfExpenses>([])
   const [expensesLoading, setExpensesLoading] = useState(true)
@@ -81,7 +84,7 @@ export const HomeLogged = () => {
   const stats = [
     {
       label: "Balance total",
-      value: `$${formatMoney(balanceTotal(accounts))}`,
+      value: formatPrivateMoney(balanceTotal(accounts), amountsVisible),
       icon: Wallet,
       loading: accountsLoading,
     },
@@ -105,6 +108,8 @@ export const HomeLogged = () => {
       <PageHeader
         title={`Hola, ${auth?.user ?? "usuario"}`}
         description="Resumen de tu situación financiera"
+        action={<PrivacyToggle />}
+        actionClassName="w-auto self-end"
       />
 
       <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">

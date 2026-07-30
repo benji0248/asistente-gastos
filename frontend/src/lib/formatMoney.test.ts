@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest"
-import { normalizeMoneyInput, parseMoneyInput } from "./formatMoney"
+import {
+  formatPrivateMoney,
+  normalizeMoneyInput,
+  parseMoneyInput,
+  PRIVATE_MONEY_MASK,
+} from "./formatMoney"
+
+describe("formatPrivateMoney", () => {
+  it("masks amounts when not visible", () => {
+    expect(formatPrivateMoney(12500.5, false)).toBe(PRIVATE_MONEY_MASK)
+  })
+
+  it("formats amounts with currency prefix when visible", () => {
+    expect(formatPrivateMoney(1500, true)).toBe("$1.500")
+  })
+
+  it("can omit the currency prefix", () => {
+    expect(formatPrivateMoney(1500, true, { prefix: false })).toBe("1.500")
+  })
+})
 
 describe("normalizeMoneyInput", () => {
   it("adds thousand separators while typing", () => {

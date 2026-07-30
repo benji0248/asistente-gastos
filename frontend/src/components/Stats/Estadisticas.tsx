@@ -6,7 +6,9 @@ import { useAppData } from "@/context/AppDataProvider"
 import { getAvailableMonths, listAll } from "@/lib/db/expenses"
 import { normalizeMonths, type MonthYear } from "@/lib/monthUtils"
 import { balanceTotal } from "@/consts"
-import { formatMoney, formatPercent } from "@/lib/formatMoney"
+import { formatPrivateMoney, formatPercent } from "@/lib/formatMoney"
+import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
+import { PrivacyToggle } from "@/components/layout/PrivacyToggle"
 import {
   accountBreakdown,
   categoryBreakdown,
@@ -49,6 +51,7 @@ function Estadisticas() {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
   const { accounts, categories: contextCategories, loading: contextLoading } = useAppData()
+  const { amountsVisible } = usePrivacyAmounts()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [availableMonths, setAvailableMonths] = useState<MonthYear[]>([])
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
@@ -206,35 +209,42 @@ function Estadisticas() {
             : `Análisis personal · ${monthLabel(month, year)}`
         }
         action={
-          <MonthPicker
-            months={availableMonths}
-            selectedMonth={selectedMonth}
-            selectedYear={selectedYear}
-            onSelect={(nextMonth, nextYear) => {
-              setSelectedMonth(nextMonth)
-              setSelectedYear(nextYear)
-            }}
-            className="w-full rounded-xl"
-          />
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <MonthPicker
+              months={availableMonths}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onSelect={(nextMonth, nextYear) => {
+                setSelectedMonth(nextMonth)
+                setSelectedYear(nextYear)
+              }}
+              className="min-w-0 flex-1 rounded-xl sm:flex-none"
+            />
+            <PrivacyToggle />
+          </div>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 min-w-0 sm:gap-4 xl:grid-cols-4">
-        <StatCard label="Gasto pagado" value={`$${formatMoney(paidTotal)}`} icon={Wallet} />
+        <StatCard
+          label="Gasto pagado"
+          value={formatPrivateMoney(paidTotal, amountsVisible)}
+          icon={Wallet}
+        />
         <StatCard
           label="Pendiente de pago"
-          value={`$${formatMoney(pendingTotal)}`}
+          value={formatPrivateMoney(pendingTotal, amountsVisible)}
           icon={Clock}
           highlight={pendingTotal > 0}
         />
         <StatCard
           label="Comprometido del mes"
-          value={`$${formatMoney(committedTotal)}`}
+          value={formatPrivateMoney(committedTotal, amountsVisible)}
           icon={Receipt}
         />
         <StatCard
           label="Balance en cuentas"
-          value={`$${formatMoney(totalBalance)}`}
+          value={formatPrivateMoney(totalBalance, amountsVisible)}
           icon={PiggyBank}
         />
       </div>
@@ -259,12 +269,12 @@ function Estadisticas() {
           />
           <StatCard
             label="Promedio diario"
-            value={`$${formatMoney(avgDaily)}`}
+            value={formatPrivateMoney(avgDaily, amountsVisible)}
             icon={CalendarDays}
           />
           <StatCard
             label="Ticket promedio"
-            value={`$${formatMoney(avgTicket)}`}
+            value={formatPrivateMoney(avgTicket, amountsVisible)}
             icon={BarChart3}
           />
           <StatCard
@@ -288,12 +298,12 @@ function Estadisticas() {
         />
         <StatCard
           label="Promedio diario"
-          value={`$${formatMoney(avgDaily)}`}
+          value={formatPrivateMoney(avgDaily, amountsVisible)}
           icon={CalendarDays}
         />
         <StatCard
           label="Ticket promedio"
-          value={`$${formatMoney(avgTicket)}`}
+          value={formatPrivateMoney(avgTicket, amountsVisible)}
           icon={BarChart3}
         />
         <StatCard
@@ -339,11 +349,15 @@ function Estadisticas() {
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div className="rounded-xl bg-muted/50 p-3 sm:p-4 min-w-0">
                 <p className="text-[11px] text-muted-foreground sm:text-xs">Mes actual (pagado)</p>
-                <p className="font-display text-lg font-bold break-all tabular-nums sm:text-2xl">${formatMoney(paidTotal)}</p>
+                <p className="font-display text-lg font-bold break-all tabular-nums sm:text-2xl">
+                  {formatPrivateMoney(paidTotal, amountsVisible)}
+                </p>
               </div>
               <div className="rounded-xl bg-muted/50 p-3 sm:p-4 min-w-0">
                 <p className="text-[11px] text-muted-foreground sm:text-xs">Mes anterior (pagado)</p>
-                <p className="font-display text-lg font-bold break-all tabular-nums sm:text-2xl">${formatMoney(previousPaid)}</p>
+                <p className="font-display text-lg font-bold break-all tabular-nums sm:text-2xl">
+                  {formatPrivateMoney(previousPaid, amountsVisible)}
+                </p>
               </div>
             </div>
             <Separator />
@@ -356,7 +370,12 @@ function Estadisticas() {
                     vsPrevious.delta > 0 ? "text-destructive" : "text-foreground"
                   )}
                 >
-                  {vsPrevious.delta >= 0 ? "+" : "-"}${formatMoney(Math.abs(vsPrevious.delta))}
+                  {amountsVisible
+                    ? `${vsPrevious.delta >= 0 ? "+" : "-"}${formatPrivateMoney(
+                        Math.abs(vsPrevious.delta),
+                        true
+                      )}`
+                    : formatPrivateMoney(0, false)}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-3">
@@ -367,7 +386,7 @@ function Estadisticas() {
                 <span className="text-muted-foreground shrink-0">Día de mayor gasto</span>
                 <span className="font-semibold text-right">
                   {busiestDay.amount > 0
-                    ? `Día ${busiestDay.day} ($${formatMoney(busiestDay.amount)})`
+                    ? `Día ${busiestDay.day} (${formatPrivateMoney(busiestDay.amount, amountsVisible)})`
                     : "—"}
                 </span>
               </div>

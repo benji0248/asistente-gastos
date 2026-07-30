@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
-import { formatMoney } from "@/lib/formatMoney"
+import { formatPrivateMoney } from "@/lib/formatMoney"
+import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 
 interface HorizontalBarProps {
   label: string
@@ -16,6 +17,8 @@ export function HorizontalBar({
   meta,
   highlight,
 }: HorizontalBarProps) {
+  const { amountsVisible } = usePrivacyAmounts()
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-3 text-sm">
@@ -24,7 +27,9 @@ export function HorizontalBar({
           {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
         </div>
         <div className="text-right shrink-0 tabular-nums">
-          <p className="text-sm font-semibold break-all sm:break-normal">${formatMoney(amount)}</p>
+          <p className="text-sm font-semibold break-all sm:break-normal">
+            {formatPrivateMoney(amount, amountsVisible)}
+          </p>
           <p className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</p>
         </div>
       </div>
@@ -51,6 +56,7 @@ interface MonthBarsProps {
 }
 
 export function MonthBars({ items, maxValue }: MonthBarsProps) {
+  const { amountsVisible } = usePrivacyAmounts()
   const scale = maxValue > 0 ? maxValue : 1
 
   return (
@@ -61,7 +67,7 @@ export function MonthBars({ items, maxValue }: MonthBarsProps) {
           return (
             <div key={item.label} className="flex min-w-0 flex-1 flex-col items-center gap-1.5 sm:gap-2">
               <span className="max-w-full truncate text-[10px] font-medium tabular-nums text-muted-foreground sm:text-xs">
-                ${formatMoney(item.paid)}
+                {formatPrivateMoney(item.paid, amountsVisible)}
               </span>
               <div className="flex h-24 w-full items-end justify-center sm:h-28">
                 <div

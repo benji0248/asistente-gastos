@@ -14,9 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { PageHeader } from "../layout/PageHeader"
+import { PrivacyToggle } from "../layout/PrivacyToggle"
 import { SectionLoader } from "../layout/SectionLoader"
 import { Loader2 } from "lucide-react"
-import { formatMoney } from "@/lib/formatMoney"
+import { formatPrivateMoney } from "@/lib/formatMoney"
+import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 import { useEffect } from "react"
 
 function Profile() {
@@ -29,6 +31,7 @@ function Profile() {
     refreshAccounts,
     refreshCategories,
   } = useAppData()
+  const { amountsVisible } = usePrivacyAmounts()
 
   useEffect(() => {
     if (!auth?.id) return
@@ -41,10 +44,14 @@ function Profile() {
         title="Mi cuenta"
         description={auth?.email}
         action={
-          <Badge variant="secondary" className="rounded-full px-4 py-1.5 text-sm">
-            @{auth?.user}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="rounded-full px-4 py-1.5 text-sm">
+              @{auth?.user}
+            </Badge>
+            <PrivacyToggle />
+          </div>
         }
+        actionClassName="w-auto self-end"
       />
 
       {isLinked && household && (
@@ -75,8 +82,8 @@ function Profile() {
             <>
               <p className="mb-4 text-sm text-muted-foreground">
                 Balance total:{" "}
-                <span className="font-semibold text-foreground">
-                  ${formatMoney(balanceTotal(accounts))}
+                <span className="font-semibold text-foreground tabular-nums">
+                  {formatPrivateMoney(balanceTotal(accounts), amountsVisible)}
                 </span>
               </p>
               <ProfileAccounts accounts={accounts} onAccountsChange={refreshAccounts} />
