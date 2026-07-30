@@ -122,13 +122,15 @@ export const TransferFounds = ({
                   <SelectValue placeholder="Elija una cuenta" />
                 </SelectTrigger>
                 <SelectContent>
-                  {listOfAccounts.map((acc) => (
-                    <SelectItem key={acc.id} value={String(acc.id)}>
-                      {isLinked
-                        ? `@${getOwnerName(acc.user_id)} - ${acc.description}`
-                        : acc.description}
-                    </SelectItem>
-                  ))}
+                  {listOfAccounts
+                    .filter((acc) => acc.id !== account_id)
+                    .map((acc) => (
+                      <SelectItem key={acc.id} value={String(acc.id)}>
+                        {isLinked
+                          ? `@${getOwnerName(acc.user_id)} - ${acc.description}`
+                          : acc.description}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

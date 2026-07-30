@@ -176,7 +176,10 @@ export const HomeLogged = () => {
             {accountsLoading ? (
               <SectionLoader minHeight="min-h-[200px]" />
             ) : (
-              <AccordionAccounts accounts={accounts} />
+              <AccordionAccounts
+                accounts={accounts}
+                onAccountsChange={refreshAccounts}
+              />
             )}
           </CardContent>
         </Card>
