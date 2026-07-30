@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -10,9 +11,19 @@ interface StatCardProps {
   highlight?: boolean
   loading?: boolean
   className?: string
+  /** Acción inline pegada al valor (p. ej. ojito de privacidad). */
+  valueAction?: ReactNode
 }
 
-export function StatCard({ label, value, icon: Icon, highlight, loading, className }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  icon: Icon,
+  highlight,
+  loading,
+  className,
+  valueAction,
+}: StatCardProps) {
   return (
     <Card
       className={cn(
@@ -34,14 +45,17 @@ export function StatCard({ label, value, icon: Icon, highlight, loading, classNa
         {loading ? (
           <Loader2 className="h-7 w-7 animate-spin text-muted-foreground sm:h-8 sm:w-8" />
         ) : (
-          <p
-            className={cn(
-              "font-display text-lg font-bold tracking-tight tabular-nums break-all sm:text-2xl lg:text-3xl",
-              highlight ? "text-destructive" : "text-foreground"
-            )}
-          >
-            {value}
-          </p>
+          <div className="flex min-w-0 items-center gap-1">
+            <p
+              className={cn(
+                "min-w-0 font-display text-lg font-bold tracking-tight tabular-nums break-all sm:text-2xl lg:text-3xl",
+                highlight ? "text-destructive" : "text-foreground"
+              )}
+            >
+              {value}
+            </p>
+            {valueAction}
+          </div>
         )}
       </CardContent>
     </Card>
