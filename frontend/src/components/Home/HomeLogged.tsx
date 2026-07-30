@@ -81,41 +81,34 @@ export const HomeLogged = () => {
     return dateB.getTime() - dateA.getTime()
   })
 
-  const stats = [
-    {
-      label: "Balance total",
-      value: formatPrivateMoney(balanceTotal(accounts), amountsVisible),
-      icon: Wallet,
-      loading: accountsLoading,
-    },
-    {
-      label: "Gastos pendientes",
-      value: pendingCount,
-      icon: Clock,
-      highlight: pendingCount > 0,
-      loading: expensesLoading,
-    },
-    {
-      label: "Gastos pagados",
-      value: paidCount,
-      icon: CheckCircle2,
-      loading: expensesLoading,
-    },
-  ]
-
   return (
     <div className="space-y-5 sm:space-y-10">
       <PageHeader
         title={`Hola, ${auth?.user ?? "usuario"}`}
         description="Resumen de tu situación financiera"
-        action={<PrivacyToggle />}
-        actionClassName="w-auto self-end"
       />
 
       <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
+        <StatCard
+          label="Balance total"
+          value={formatPrivateMoney(balanceTotal(accounts), amountsVisible)}
+          icon={Wallet}
+          loading={accountsLoading}
+          valueAction={<PrivacyToggle size="inline" />}
+        />
+        <StatCard
+          label="Gastos pendientes"
+          value={pendingCount}
+          icon={Clock}
+          highlight={pendingCount > 0}
+          loading={expensesLoading}
+        />
+        <StatCard
+          label="Gastos pagados"
+          value={paidCount}
+          icon={CheckCircle2}
+          loading={expensesLoading}
+        />
       </div>
 
       {isLinked && household && (

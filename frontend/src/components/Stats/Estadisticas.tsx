@@ -209,19 +209,16 @@ function Estadisticas() {
             : `Análisis personal · ${monthLabel(month, year)}`
         }
         action={
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            <MonthPicker
-              months={availableMonths}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onSelect={(nextMonth, nextYear) => {
-                setSelectedMonth(nextMonth)
-                setSelectedYear(nextYear)
-              }}
-              className="min-w-0 flex-1 rounded-xl sm:flex-none"
-            />
-            <PrivacyToggle />
-          </div>
+          <MonthPicker
+            months={availableMonths}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onSelect={(nextMonth, nextYear) => {
+              setSelectedMonth(nextMonth)
+              setSelectedYear(nextYear)
+            }}
+            className="w-full rounded-xl"
+          />
         }
       />
 
@@ -230,6 +227,7 @@ function Estadisticas() {
           label="Gasto pagado"
           value={formatPrivateMoney(paidTotal, amountsVisible)}
           icon={Wallet}
+          valueAction={<PrivacyToggle size="inline" />}
         />
         <StatCard
           label="Pendiente de pago"

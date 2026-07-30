@@ -44,14 +44,10 @@ function Profile() {
         title="Mi cuenta"
         description={auth?.email}
         action={
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="rounded-full px-4 py-1.5 text-sm">
-              @{auth?.user}
-            </Badge>
-            <PrivacyToggle />
-          </div>
+          <Badge variant="secondary" className="rounded-full px-4 py-1.5 text-sm">
+            @{auth?.user}
+          </Badge>
         }
-        actionClassName="w-auto self-end"
       />
 
       {isLinked && household && (
@@ -80,11 +76,12 @@ function Profile() {
             <SectionLoader minHeight="min-h-[120px]" />
           ) : (
             <>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Balance total:{" "}
+              <p className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                <span>Balance total:</span>
                 <span className="font-semibold text-foreground tabular-nums">
                   {formatPrivateMoney(balanceTotal(accounts), amountsVisible)}
                 </span>
+                <PrivacyToggle size="inline" className="-ml-0.5" />
               </p>
               <ProfileAccounts accounts={accounts} onAccountsChange={refreshAccounts} />
             </>

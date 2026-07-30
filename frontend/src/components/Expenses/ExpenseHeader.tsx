@@ -75,12 +75,7 @@ export const ExpenseHeader = ({
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Gastos"
-        description={monthLabel}
-        action={<PrivacyToggle />}
-        actionClassName="w-auto self-end"
-      />
+      <PageHeader title="Gastos" description={monthLabel} />
 
       <div className="rounded-2xl border border-border/50 bg-muted/20 p-2.5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -130,11 +125,14 @@ export const ExpenseHeader = ({
             {formatPrivateMoney(pendingTotal, amountsVisible)}
           </span>
         </div>
-        <div className="col-span-2 flex min-w-0 items-baseline justify-between gap-2 rounded-xl bg-muted/40 px-3 py-3 ring-1 ring-border/40 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1 sm:py-2.5">
+        <div className="col-span-2 flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-3 ring-1 ring-border/40 sm:col-span-1 sm:flex-col sm:items-stretch sm:gap-1 sm:py-2.5">
           <span className="shrink-0 text-sm text-muted-foreground">Total del mes</span>
-          <span className="min-w-0 truncate text-right text-xl font-bold tabular-nums sm:text-left sm:text-sm sm:font-semibold">
-            {formatPrivateMoney(monthTotal, amountsVisible)}
-          </span>
+          <div className="flex min-w-0 items-center justify-end gap-0.5 sm:justify-start">
+            <span className="min-w-0 truncate text-right text-xl font-bold tabular-nums sm:text-left sm:text-sm sm:font-semibold">
+              {formatPrivateMoney(monthTotal, amountsVisible)}
+            </span>
+            <PrivacyToggle size="inline" className="-mr-1" />
+          </div>
         </div>
       </div>
 
