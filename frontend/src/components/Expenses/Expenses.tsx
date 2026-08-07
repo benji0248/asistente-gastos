@@ -24,7 +24,13 @@ const emptyMonthSummary = (): ExpensesMonthSummary => ({
 
 function Expenses() {
   const { auth } = useAuth()
-  const { accounts, categories, loading: metadataLoading, refreshCategories } = useAppData()
+  const {
+    accounts,
+    categories,
+    loading: metadataLoading,
+    refreshAccounts,
+    refreshCategories,
+  } = useAppData()
 
   const [expenses, setExpenses] = useState<listOfExpenses>([])
   const [monthSummary, setMonthSummary] = useState<ExpensesMonthSummary>(emptyMonthSummary)
@@ -154,6 +160,7 @@ function Expenses() {
       page: currentPage,
       payment: paymentFilter,
     })
+    void refreshAccounts()
   }
 
   const selectableCategories = useMemo(
