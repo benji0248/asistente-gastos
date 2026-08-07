@@ -8,6 +8,7 @@ import { supabase, throwIfError } from './client'
 import { monthDateRange } from './dateRange'
 import {
   buildExpenseUpdatePatch,
+  computeExpenseBalanceAdjustments,
   type ExpenseUpdateInput,
 } from '@/lib/expenseUpdate'
 
@@ -213,11 +214,24 @@ export async function updateExpense(
   }
 
   const patch = buildExpenseUpdatePatch(current as Expense, updates)
+  const balanceAdjustments = computeExpenseBalanceAdjustments(
+    current as Expense,
+    patch
+  )
+
   const { error } = await supabase
     .from('expenses')
     .update(patch)
     .eq('id', expenseId)
   throwIfError(error)
+
+  for (const adjustment of balanceAdjustments) {
+    const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
+      p_account_id: Number(adjustment.accountId),
+      p_delta: adjustment.delta,
+    })
+    throwIfError(balanceError)
+  }
 
   if (updates.household_recurring_expense_id && patch.amount) {
     await supabase

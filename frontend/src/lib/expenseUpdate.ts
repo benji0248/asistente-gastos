@@ -99,7 +99,66 @@ export function buildExpenseUpdatePatch(
 }
 
 /** Paid contribution used by stats (full amount if paid, partial otherwise). */
-export function paidContribution(expense: Pick<Expense, "amount" | "amount_paid" | "is_paid">): number {
+export function paidContribution(
+  expense: Pick<Expense, "amount" | "is_paid"> & { amount_paid?: number | null }
+): number {
   if (expense.is_paid) return Number(expense.amount)
   return Number(expense.amount_paid ?? 0)
+}
+
+export type BalanceAdjustment = {
+  accountId: string
+  /** Positive restores money to the account; negative deducts it. */
+  delta: number
+}
+
+type ExpenseBalanceSnapshot = {
+  account_id?: string | number | null
+  amount: number
+  amount_paid?: number | null
+  is_paid: boolean
+}
+
+function normalizeAccountId(accountId: string | number | null | undefined): string | null {
+  if (accountId == null || accountId === "") return null
+  return String(accountId)
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/**
+ * When an expense's paid amount or payment account changes, compute the
+ * account balance deltas so money is restored to the previous account and
+ * deducted from the new one (or net-adjusted on the same account).
+ */
+export function computeExpenseBalanceAdjustments(
+  previous: ExpenseBalanceSnapshot,
+  next: ExpenseBalanceSnapshot
+): BalanceAdjustment[] {
+  const prevPaid = roundMoney(paidContribution(previous))
+  const nextPaid = roundMoney(paidContribution(next))
+  const prevAccount = normalizeAccountId(previous.account_id)
+  const nextAccount = normalizeAccountId(next.account_id)
+
+  const byAccount = new Map<string, number>()
+  const add = (accountId: string | null, delta: number) => {
+    const rounded = roundMoney(delta)
+    if (!accountId || rounded === 0) return
+    byAccount.set(accountId, roundMoney((byAccount.get(accountId) ?? 0) + rounded))
+  }
+
+  if (prevAccount === nextAccount) {
+    // Same account: only the paid amount delta matters.
+    add(nextAccount, prevPaid - nextPaid)
+  } else {
+    // Refund what was taken from the previous account, charge the new one.
+    add(prevAccount, prevPaid)
+    add(nextAccount, -nextPaid)
+  }
+
+  return [...byAccount.entries()]
+    .filter(([, delta]) => delta !== 0)
+    .map(([accountId, delta]) => ({ accountId, delta }))
 }
