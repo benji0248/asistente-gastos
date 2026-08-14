@@ -31,21 +31,76 @@ function normalizeExpense(row: Expense): Expense {
   }
 }
 
+type RawMonthSummary = {
+  pendingCount?: number
+  pending_count?: number
+  paidTotal?: number
+  paid_total?: number
+  pendingTotal?: number
+  pending_total?: number
+  monthTotal?: number
+  month_total?: number
+}
+
+function normalizeMonthSummary(
+  raw: RawMonthSummary | undefined
+): ExpensesMonthSummary {
+  return {
+    pendingCount: Number(raw?.pending_count ?? raw?.pendingCount ?? 0),
+    paidTotal: Number(raw?.paid_total ?? raw?.paidTotal ?? 0),
+    pendingTotal: Number(raw?.pending_total ?? raw?.pendingTotal ?? 0),
+    monthTotal: Number(raw?.month_total ?? raw?.monthTotal ?? 0),
+  }
+}
+
+type RawPagination = {
+  page?: number
+  limit?: number
+  total?: number
+  totalPages?: number
+  total_pages?: number
+}
+
+function normalizePagination(
+  raw: RawPagination | undefined,
+  fallback: { page: number; limit: number }
+): PaginatedExpensesResponse['pagination'] {
+  const limit = Number(raw?.limit ?? fallback.limit)
+  const total = Number(raw?.total ?? 0)
+  const totalPages = raw?.total_pages ?? raw?.totalPages
+  return {
+    page: Number(raw?.page ?? fallback.page),
+    limit,
+    total,
+    totalPages: Number(
+      totalPages ?? (total === 0 ? 0 : Math.ceil(total / limit))
+    ),
+  }
+}
+
 export async function listByMonthPaginated(
   options: ListByMonthOptions
 ): Promise<PaginatedExpensesResponse> {
+  const page = options.page ?? 1
+  const limit = options.limit ?? 10
   const params = new URLSearchParams({
     month: String(options.month),
     year: String(options.year),
-    page: String(options.page ?? 1),
-    limit: String(options.limit ?? 10),
+    page: String(page),
+    limit: String(limit),
     payment: options.payment ?? 'all',
   })
 
-  const result = await apiFetch<PaginatedExpensesResponse>(`/api/v1/expenses?${params}`)
+  const result = await apiFetch<{
+    data?: Expense[]
+    pagination?: RawPagination
+    summary?: RawMonthSummary
+  }>(`/api/v1/expenses?${params}`)
+
   return {
-    ...result,
     data: (result.data ?? []).map(normalizeExpense),
+    pagination: normalizePagination(result.pagination, { page, limit }),
+    summary: normalizeMonthSummary(result.summary),
   }
 }
 
@@ -57,7 +112,10 @@ export async function getMonthSummary(
     month: String(month),
     year: String(year),
   })
-  return apiFetch<ExpensesMonthSummary>(`/api/v1/expenses/summary?${params}`)
+  const result = await apiFetch<RawMonthSummary>(
+    `/api/v1/expenses/summary?${params}`
+  )
+  return normalizeMonthSummary(result)
 }
 
 export async function listAll(): Promise<Expense[]> {
