@@ -9,7 +9,9 @@ export interface ReceiptParseResult {
 }
 
 const TOTAL_KEYWORDS =
-  /(?:total\s*(?:a\s*pagar|general|de\s*venta)?|importe|gran\s*total|amount\s*due|a\s*pagar|subtotal\s*final)/i
+  /(?:t[o0]tal\s*(?:a\s*pagar|general|de\s*venta)?|importe|gran\s*t[o0]tal|amount\s*due|a\s*pagar|subtotal\s*final|total\s*mxn)/i
+
+const SUBTOTAL_KEYWORDS = /(?:sub\s*t[o0]tal|subtotal|iva\s*16|descuento)/i
 
 const SKIP_LINE =
   /^(RFC|CURP|CP\s*\d|Tel|Teléfono|Fecha|Hora|Cajero|Ticket|Folio|UUID|www\.|http|^\d{2}\/\d{2}\/\d{4}|^\d{2}-\d{2}-\d{4})/i
@@ -49,6 +51,20 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   servicios: ["CFE", "TELMEX", "TELCEL", "AT&T", "IZZI", "MEGACABLE", "AGUA"],
   entretenimiento: ["CINEPOLIS", "CINEMEX", "NETFLIX", "SPOTIFY", "STEAM"],
   ropa: ["ZARA", "H&M", "LIVERPOOL", "PALACIO", "C&A", "SEARS"],
+}
+
+function normalizeOcrText(text: string): string {
+  return text
+    .replace(/[|]/g, "I")
+    .replace(/\bt[o0]ta[l1I]\b/gi, "TOTAL")
+    .replace(/\bsub\s*t[o0]ta[l1I]\b/gi, "SUBTOTAL")
+    .replace(/\bimp[o0]rte\b/gi, "IMPORTE")
+    .replace(/(\d)[oO](\d)/g, "$10$2")
+    .replace(/(\d)[lI](\d)/g, "$11$2")
+    .replace(/(\d)[sS](\d)/g, "$15$2")
+    .replace(/(\d)[bB](\d)/g, "$18$2")
+    .replace(/(^|\s)[lI](?=\d)/g, "$11")
+    .replace(/[$sS]\s*(?=\d)/g, "$ ")
 }
 
 export function parseAmount(raw: string): number | null {
@@ -119,34 +135,47 @@ function extractAllAmounts(text: string): number[] {
 function extractTotalAmount(lines: string[]): number | null {
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i]
+    if (SUBTOTAL_KEYWORDS.test(line) && !TOTAL_KEYWORDS.test(line)) continue
     if (!TOTAL_KEYWORDS.test(line)) continue
+
     const sameLine = parseAmount(line.replace(TOTAL_KEYWORDS, ""))
     if (sameLine !== null) return sameLine
-    if (i + 1 < lines.length) {
-      const nextLine = parseAmount(lines[i + 1])
+
+    for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+      const nextLine = parseAmount(lines[j])
       if (nextLine !== null) return nextLine
     }
   }
 
   for (let i = lines.length - 1; i >= 0; i--) {
+    if (SUBTOTAL_KEYWORDS.test(lines[i]) && !TOTAL_KEYWORDS.test(lines[i])) continue
     if (TOTAL_KEYWORDS.test(lines[i])) {
       const amount = parseAmount(lines[i])
       if (amount !== null) return amount
     }
   }
 
+  const dollarMatches = [...lines.join("\n").matchAll(/\$\s*([\d][\d.,\s]{0,12}\d|\d+[.,]\d{2})/gi)]
+  if (dollarMatches.length > 0) {
+    const last = parseAmount(dollarMatches[dollarMatches.length - 1][1])
+    if (last !== null) return last
+  }
+
   const amounts = extractAllAmounts(lines.join("\n"))
   if (amounts.length === 0) return null
-  return Math.max(...amounts)
+
+  const sorted = [...amounts].sort((a, b) => a - b)
+  return sorted[sorted.length - 1]
 }
 
 function extractMerchant(lines: string[]): string {
-  for (const line of lines.slice(0, 8)) {
+  for (const line of lines.slice(0, 10)) {
     const trimmed = line.trim()
     if (trimmed.length < 3 || trimmed.length > 60) continue
     if (SKIP_LINE.test(trimmed)) continue
     if (/^\d+$/.test(trimmed)) continue
     if (/^[\d\s\-\.\$]+$/.test(trimmed)) continue
+    if (TOTAL_KEYWORDS.test(trimmed) || SUBTOTAL_KEYWORDS.test(trimmed)) continue
     return trimmed
       .replace(/[^\w\sáéíóúñÁÉÍÓÚÑ&\-\.]/g, " ")
       .replace(/\s+/g, " ")
@@ -194,14 +223,15 @@ export function parseReceiptText(
   rawText: string,
   categories: Category[] = []
 ): ReceiptParseResult {
-  const lines = rawText
+  const normalizedText = normalizeOcrText(rawText)
+  const lines = normalizedText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
 
   const amount = extractTotalAmount(lines)
   const title = extractMerchant(lines)
-  const categoryId = suggestCategory(rawText, categories)
+  const categoryId = suggestCategory(normalizedText, categories)
 
   let confidence: ReceiptParseResult["confidence"] = "low"
   if (amount !== null && title !== "Gasto escaneado") {
