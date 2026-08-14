@@ -30,12 +30,7 @@ export function AppSidebar() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background shadow-soft">
               <Wallet className="h-4 w-4" />
             </div>
-            <span className="truncate leading-tight">
-              Control
-              <span className="block text-xs font-normal text-muted-foreground font-sans">
-                de Gastos
-              </span>
-            </span>
+            <span className="truncate leading-tight">Gastito</span>
           </Link>
         </div>
 

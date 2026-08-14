@@ -15,7 +15,7 @@ afterEach(() => {
 describe("Select display with numeric DB ids", () => {
   it("shows the label when controlled value is a string and item value is a number", async () => {
     // Radix syncs via a hidden native <select>, so controlled values become strings
-    // ("42") while Supabase SERIAL ids on SelectItem are numbers (42). Without
+    // ("42") while numeric DB ids on SelectItem are numbers (42). Without
     // coercing both sides to string, SelectValue stays blank.
     render(
       <Select value="42" onValueChange={() => undefined}>

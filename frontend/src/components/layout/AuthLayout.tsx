@@ -22,7 +22,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background/10 backdrop-blur ring-1 ring-background/20">
               <Wallet className="h-5 w-5" />
             </div>
-            Control de Gastos
+            Gastito
           </Link>
 
           <div className="space-y-8">
@@ -55,7 +55,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           </div>
 
           <p className="text-sm opacity-40">
-            © {new Date().getFullYear()} Control de Gastos
+            © {new Date().getFullYear()} Gastito
           </p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background">
             <Wallet className="h-5 w-5" />
           </div>
-          <span>Control de Gastos</span>
+          <span>Gastito</span>
         </div>
 
         <div className="w-full max-w-md">

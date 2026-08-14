@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 /**
  * Radix Select compares values with === and also syncs through a hidden
  * native <select>, whose DOM values are always strings. If callers pass
- * numeric ids (e.g. Supabase SERIAL), the controlled value becomes a string
+ * numeric ids (e.g. Postgres SERIAL), the controlled value becomes a string
  * while SelectItem keeps a number → isSelected is false and SelectValue goes blank.
  */
 function toSelectValue(

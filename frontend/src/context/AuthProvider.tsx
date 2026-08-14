@@ -1,7 +1,7 @@
-import { createContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from "react"
-import type { Session } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase"
-import { ROLES } from "@/consts"
+import { createContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from 'react'
+import { apiFetch } from '@/lib/api/http'
+import { decodeJwtPayload, getAccessToken, getRefreshToken } from '@/lib/auth/session'
+import { ROLES } from '@/consts'
 
 export type AuthState = {
   user: string
@@ -19,20 +19,30 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
-function buildAuthFromSession(session: Session | null): AuthState {
-  if (!session) return null
+interface MeProfile {
+  id: string
+  username: string
+  role?: number | null
+}
 
+function buildAuthFromTokens(accessToken: string, profile?: MeProfile | null): AuthState {
+  const payload = decodeJwtPayload(accessToken)
+  const id = profile?.id ?? payload?.pid ?? payload?.sub
+  if (!id) return null
+
+  const email = payload?.email ?? ''
   const username =
-    (session.user.user_metadata?.username as string | undefined) ??
-    session.user.email?.split("@")[0] ??
-    ""
+    profile?.username ??
+    (typeof payload?.name === 'string' ? payload.name : undefined) ??
+    email.split('@')[0] ??
+    'usuario'
 
   return {
-    id: session.user.id,
+    id,
     user: username,
-    email: session.user.email ?? "",
-    role: ROLES.user,
-    accessToken: session.access_token,
+    email,
+    role: profile?.role ?? ROLES.user,
+    accessToken,
   }
 }
 
@@ -41,17 +51,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuth(buildAuthFromSession(session))
-      setLoading(false)
-    })
+    let cancelled = false
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuth(buildAuthFromSession(session))
-      setLoading(false)
-    })
+    const loadSession = async () => {
+      const accessToken = getAccessToken()
+      const refreshToken = getRefreshToken()
 
-    return () => subscription.unsubscribe()
+      if (!accessToken && !refreshToken) {
+        if (!cancelled) {
+          setAuth(null)
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        let token = accessToken
+        if (!token && refreshToken) {
+          const { refresh, persistTokens } = await import('@/lib/auth/identity')
+          const tokens = await refresh(refreshToken)
+          persistTokens(tokens)
+          token = tokens.access_token
+        }
+
+        if (!token) {
+          if (!cancelled) setAuth(null)
+          return
+        }
+
+        let profile: MeProfile | null = null
+        try {
+          profile = await apiFetch<MeProfile>('/api/v1/me')
+        } catch {
+          profile = null
+        }
+
+        if (!cancelled) {
+          setAuth(buildAuthFromTokens(token, profile))
+        }
+      } catch {
+        if (!cancelled) setAuth(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void loadSession()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (

@@ -1,16 +1,19 @@
-import { supabase } from '@/lib/supabase'
+import { logout as identityLogout } from '@/lib/auth/identity'
+import { getRefreshToken } from '@/lib/auth/session'
 import useAuth from './useAuth'
 
 export const useLogout = () => {
-    const { setAuth } = useAuth()
+  const { setAuth } = useAuth()
 
-    const logout = async () => {
-        setAuth(null)
-        try {
-            await supabase.auth.signOut()
-        } catch (err) {
-            console.error(err)
-        }
+  const logout = async () => {
+    const refreshToken = getRefreshToken()
+    setAuth(null)
+    try {
+      await identityLogout(refreshToken)
+    } catch (err) {
+      console.error(err)
     }
-    return logout
+  }
+
+  return logout
 }

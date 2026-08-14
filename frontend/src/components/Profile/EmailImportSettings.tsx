@@ -161,7 +161,7 @@ export function EmailImportSettings() {
   }
 
   const token = settings?.import_token ?? "(activá la importación para generar token)"
-  const gmailLabel = settings?.gmail_label ?? "AsistenteGastos"
+  const gmailLabel = settings?.gmail_label ?? "Gastito"
 
   return (
     <Card>
@@ -297,8 +297,8 @@ export function EmailImportSettings() {
 
           <p className="text-xs text-muted-foreground">
             También necesitás el secreto{" "}
-            <code className="rounded bg-muted px-1">BANK_IMPORT_WEBHOOK_SECRET</code> que
-            configuraste al desplegar la Edge Function en Supabase.
+            <code className="rounded bg-muted px-1">BANK_IMPORT_WEBHOOK_SECRET</code> configurado
+            en gastos-api.
           </p>
         </div>
 

@@ -1,4 +1,4 @@
-import { supabase, throwIfError } from './client'
+import { apiFetch } from '@/lib/api/http'
 
 export interface EmailImportSettings {
   user_id: string
@@ -20,33 +20,24 @@ export interface EmailImportLogEntry {
   created_at: string
 }
 
-function generateImportToken(): string {
-  const bytes = new Uint8Array(24)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
-}
-
 export function getBankImportFunctionUrl(): string {
-  const base = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')
-  if (!base) return ''
-  return `${base}/functions/v1/bank-email-import`
+  const configured = import.meta.env.VITE_BANK_IMPORT_URL?.replace(/\/$/, '')
+  if (configured) return configured
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return `${window.location.origin}/api/v1/email-import/bank-import`
+  }
+  return ''
 }
 
 export async function getEmailImportSettings(
-  userId: string
+  _userId: string
 ): Promise<EmailImportSettings | null> {
-  const { data, error } = await supabase
-    .from('email_import_settings')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  throwIfError(error)
-  return (data as EmailImportSettings | null) ?? null
+  const data = await apiFetch<EmailImportSettings | null>('/api/v1/email-import/settings')
+  return data ?? null
 }
 
 export async function upsertEmailImportSettings(
-  userId: string,
+  _userId: string,
   updates: Partial<
     Pick<
       EmailImportSettings,
@@ -54,80 +45,21 @@ export async function upsertEmailImportSettings(
     >
   >
 ): Promise<EmailImportSettings> {
-  const existing = await getEmailImportSettings(userId)
-
-  if (existing) {
-    const { data, error } = await supabase
-      .from('email_import_settings')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .select('*')
-      .single()
-
-    throwIfError(error)
-    return data as EmailImportSettings
-  }
-
-  const { data, error } = await supabase
-    .from('email_import_settings')
-    .insert({
-      user_id: userId,
-      import_token: generateImportToken(),
-      default_account_id: updates.default_account_id ?? null,
-      allowed_senders: updates.allowed_senders ?? [],
-      enabled: updates.enabled ?? false,
-      gmail_label: updates.gmail_label ?? 'AsistenteGastos',
-    })
-    .select('*')
-    .single()
-
-  throwIfError(error)
-  return data as EmailImportSettings
+  return apiFetch<EmailImportSettings>('/api/v1/email-import/settings', {
+    method: 'PUT',
+    body: updates,
+  })
 }
 
-export async function regenerateImportToken(userId: string): Promise<EmailImportSettings> {
-  const token = generateImportToken()
-  const existing = await getEmailImportSettings(userId)
-
-  if (existing) {
-    const { data, error } = await supabase
-      .from('email_import_settings')
-      .update({ import_token: token, updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .select('*')
-      .single()
-
-    throwIfError(error)
-    return data as EmailImportSettings
-  }
-
-  const { data, error } = await supabase
-    .from('email_import_settings')
-    .insert({
-      user_id: userId,
-      import_token: token,
-      allowed_senders: [],
-      enabled: false,
-      gmail_label: 'AsistenteGastos',
-    })
-    .select('*')
-    .single()
-
-  throwIfError(error)
-  return data as EmailImportSettings
+export async function regenerateImportToken(_userId: string): Promise<EmailImportSettings> {
+  return apiFetch<EmailImportSettings>('/api/v1/email-import/settings/regenerate-token', {
+    method: 'POST',
+  })
 }
 
 export async function listRecentImportLogs(
-  userId: string,
+  _userId: string,
   limit = 5
 ): Promise<EmailImportLogEntry[]> {
-  const { data, error } = await supabase
-    .from('email_import_log')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  throwIfError(error)
-  return (data ?? []) as EmailImportLogEntry[]
+  return apiFetch<EmailImportLogEntry[]>(`/api/v1/email-import/logs?limit=${limit}`)
 }

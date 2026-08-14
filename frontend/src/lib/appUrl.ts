@@ -1,4 +1,4 @@
-/** Origin for Supabase auth redirects; must be listed in Supabase redirect URLs. */
+/** Origin for app redirects and absolute links. */
 export function getAuthRedirectOrigin(): string {
   if (typeof window !== 'undefined' && window.location.origin) {
     return window.location.origin

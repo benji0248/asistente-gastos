@@ -22,7 +22,7 @@ import { PrivacyToggle } from "../layout/PrivacyToggle"
 import { StatCard } from "../layout/StatCard"
 import { SectionLoader } from "../layout/SectionLoader"
 import { formatPrivateMoney } from "@/lib/formatMoney"
-import { listAll } from "@/lib/db/expenses"
+import { getHomeOverview } from "@/lib/db/expenses"
 import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 
 export const HomeLogged = () => {
@@ -31,55 +31,35 @@ export const HomeLogged = () => {
   const { accounts, loading: accountsLoading, refreshAccounts } = useAppData()
   const { amountsVisible } = usePrivacyAmounts()
 
-  const [expenses, setExpenses] = useState<listOfExpenses>([])
+  const [recentExpenses, setRecentExpenses] = useState<listOfExpenses>([])
+  const [pendingCount, setPendingCount] = useState(0)
+  const [paidCount, setPaidCount] = useState(0)
   const [expensesLoading, setExpensesLoading] = useState(true)
 
-  useEffect(() => {
+  const loadOverview = useCallback(async () => {
     if (!auth?.id) return
-    let cancelled = false
-
-    const loadExpenses = async () => {
-      setExpensesLoading(true)
-      try {
-        const data = await listAll()
-        if (!cancelled) setExpenses(data)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        if (!cancelled) setExpensesLoading(false)
-      }
-    }
-
-    void loadExpenses()
-    return () => {
-      cancelled = true
-    }
-  }, [auth?.id])
-
-  useEffect(() => {
-    if (!auth?.id) return
-    void refreshAccounts()
-  }, [auth?.id, refreshAccounts])
-
-  const reloadExpenses = useCallback(async () => {
-    if (!auth?.id) return
+    setExpensesLoading(true)
     try {
-      setExpenses(await listAll())
+      const overview = await getHomeOverview()
+      setPendingCount(overview.pendingCount)
+      setPaidCount(overview.paidCount)
+      setRecentExpenses(overview.recent)
     } catch (err) {
       console.error(err)
+    } finally {
+      setExpensesLoading(false)
     }
   }, [auth?.id])
 
-  const pendingCount = expenses.filter((e) => !e.is_paid).length
-  const paidCount = expenses.filter((e) => e.is_paid).length
+  useEffect(() => {
+    void loadOverview()
+  }, [loadOverview])
 
-  const sortAndFilterExpenses = [...expenses].sort((a, b) => {
-    if (a.is_paid && !b.is_paid) return 1
-    if (!a.is_paid && b.is_paid) return -1
-    const dateA = a.payment_date ? new Date(a.payment_date) : new Date(0)
-    const dateB = b.payment_date ? new Date(b.payment_date) : new Date(0)
-    return dateB.getTime() - dateA.getTime()
-  })
+  const reloadExpenses = useCallback(async () => {
+    await loadOverview()
+  }, [loadOverview])
+
+  const sortAndFilterExpenses = recentExpenses
 
   return (
     <div className="space-y-5 sm:space-y-10">

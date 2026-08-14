@@ -19,7 +19,7 @@ export function PublicPageShell({
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Control de Gastos. Todos los derechos reservados.
+                © {new Date().getFullYear()} Gastito. Todos los derechos reservados.
               </p>
               <div className="flex gap-6 text-sm">
                 <a
