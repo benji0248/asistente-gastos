@@ -1,87 +1,51 @@
 import type { Account, newAccount } from '@/types'
-import { supabase, throwIfError } from './client'
-import { getMyHouseholdId } from './household'
+import { apiFetch } from '@/lib/api/http'
 
-export async function listAccounts(): Promise<Account[]> {
-  const householdId = await getMyHouseholdId()
-
-  let household: { id: string; shared_cash: boolean } | null = null
-  if (householdId) {
-    const { data } = await supabase
-      .from('households')
-      .select('id, shared_cash')
-      .eq('id', householdId)
-      .maybeSingle()
-    household = data
+function normalizeAccount(row: Account): Account {
+  return {
+    ...row,
+    id: String(row.id),
+    balance: Number(row.balance),
   }
-
-  const { data: personal, error } = await supabase
-    .from('accounts')
-    .select('*')
-    .is('household_id', null)
-    .order('created_at', { ascending: true })
-
-  throwIfError(error)
-
-  let accounts = (personal ?? []) as Account[]
-
-  if (household?.shared_cash && household.id) {
-    accounts = accounts.filter((a) => a.type !== 'cash')
-
-    const { data: shared } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('household_id', household.id)
-      .eq('type', 'cash')
-      .maybeSingle()
-
-    if (shared) accounts = [...accounts, shared as Account]
-  }
-
-  return accounts
 }
 
-export async function createAccount(userId: string, payload: newAccount): Promise<Account> {
-  const { data, error } = await supabase
-    .from('accounts')
-    .insert({
-      user_id: userId,
+export async function listAccounts(): Promise<Account[]> {
+  const rows = await apiFetch<Account[]>('/api/v1/accounts')
+  return (rows ?? []).map(normalizeAccount)
+}
+
+export async function createAccount(_userId: string, payload: newAccount): Promise<Account> {
+  const created = await apiFetch<Account>('/api/v1/accounts', {
+    method: 'POST',
+    body: {
       type: payload.type,
       balance: payload.balance,
       description: payload.description,
-    })
-    .select('*')
-    .single()
-  throwIfError(error)
-  return data as Account
+    },
+  })
+  return normalizeAccount(created)
 }
 
 export async function updateAccount(accountId: string, payload: Partial<Account>): Promise<void> {
-  const { error } = await supabase
-    .from('accounts')
-    .update({
+  await apiFetch(`/api/v1/accounts/${accountId}`, {
+    method: 'PATCH',
+    body: {
       type: payload.type,
       balance: payload.balance,
       description: payload.description,
-    })
-    .eq('id', accountId)
-  throwIfError(error)
+    },
+  })
 }
 
 export async function setAccountBalance(accountId: string, balance: number): Promise<void> {
-  const { error } = await supabase
-    .from('accounts')
-    .update({ balance })
-    .eq('id', accountId)
-  throwIfError(error)
+  await updateAccount(accountId, { balance })
 }
 
 export async function addFunds(accountId: string, amount: number): Promise<void> {
-  const { error } = await supabase.rpc('adjust_account_balance', {
-    p_account_id: Number(accountId),
-    p_delta: amount,
+  await apiFetch(`/api/v1/accounts/${accountId}/adjust`, {
+    method: 'POST',
+    body: { delta: amount },
   })
-  throwIfError(error)
 }
 
 export async function transferFunds(
@@ -89,25 +53,16 @@ export async function transferFunds(
   toId: string,
   amount: number
 ): Promise<void> {
-  const { error } = await supabase.rpc('transfer_funds', {
-    p_from_id: Number(fromId),
-    p_to_id: Number(toId),
-    p_amount: amount,
+  await apiFetch('/api/v1/accounts/transfer', {
+    method: 'POST',
+    body: {
+      from_id: Number(fromId),
+      to_id: Number(toId),
+      amount,
+    },
   })
-  throwIfError(error)
 }
 
 export async function deleteAccount(accountId: string): Promise<void> {
-  const { data: account } = await supabase
-    .from('accounts')
-    .select('household_id')
-    .eq('id', accountId)
-    .maybeSingle()
-
-  if (account?.household_id) {
-    throw new Error('No se puede eliminar el efectivo compartido del hogar')
-  }
-
-  const { error } = await supabase.from('accounts').delete().eq('id', accountId)
-  throwIfError(error)
+  await apiFetch(`/api/v1/accounts/${accountId}`, { method: 'DELETE' })
 }

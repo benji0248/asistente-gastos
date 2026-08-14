@@ -1,24 +1,20 @@
-import { useEffect, useRef, useState, type FormEvent } from "react"
-import { Link } from "react-router-dom"
-import { AlertCircle, Check, CheckCircle2, X } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import { getAuthRedirectUrl } from "@/lib/appUrl"
-import { AuthLayout } from "@/components/layout/AuthLayout"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { useEffect, useRef, useState, type FormEvent, useContext } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AlertCircle, Check, X } from 'lucide-react'
+import { register, persistTokens } from '@/lib/auth/identity'
+import { decodeJwtPayload } from '@/lib/auth/session'
+import { apiFetch } from '@/lib/api/http'
+import { ROLES } from '@/consts'
+import { AuthContext } from '@/context/AuthProvider'
+import { AuthLayout } from '@/components/layout/AuthLayout'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { cn } from '@/lib/utils'
 
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}$/
-const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,24}$/
+const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{12,}$/
 const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/
 
 function FieldStatus({
@@ -38,23 +34,25 @@ function FieldStatus({
 }
 
 export const Register = () => {
+  const authContext = useContext(AuthContext)
+  const navigate = useNavigate()
+
   const userRef = useRef<HTMLInputElement>(null)
   const errRef = useRef<HTMLParagraphElement>(null)
 
-  const [user, setUser] = useState<string>("")
+  const [user, setUser] = useState<string>('')
   const [validName, setValidName] = useState<boolean>(false)
 
-  const [email, setEmail] = useState<string>("")
+  const [email, setEmail] = useState<string>('')
   const [validEmail, setValidEmail] = useState<boolean>(false)
 
-  const [pwd, setPwd] = useState<string>("")
+  const [pwd, setPwd] = useState<string>('')
   const [validPwd, setValidPwd] = useState<boolean>(false)
 
-  const [matchPwd, setMatchPwd] = useState<string>("")
+  const [matchPwd, setMatchPwd] = useState<string>('')
   const [validMatch, setValidMatch] = useState<boolean>(false)
 
-  const [errMsg, setErrMsg] = useState<string>("")
-  const [success, setSuccess] = useState<boolean>(false)
+  const [errMsg, setErrMsg] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -75,7 +73,7 @@ export const Register = () => {
   }, [pwd, matchPwd])
 
   useEffect(() => {
-    setErrMsg("")
+    setErrMsg('')
   }, [user, pwd, matchPwd, email])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -84,57 +82,48 @@ export const Register = () => {
     const v2 = PWD_REGEX.test(pwd)
     const v3 = EMAIL_REGEX.test(email)
     if (!v1 || !v2 || !v3) {
-      setErrMsg("Uno de los campos es inválido")
+      setErrMsg('Uno de los campos es inválido')
       return
     }
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const tokens = await register({
         email,
         password: pwd,
-        options: {
-          data: { username: user },
-          emailRedirectTo: getAuthRedirectUrl('/login'),
-        },
+        displayName: user,
       })
+      persistTokens(tokens)
 
-      if (error) {
-        setErrMsg(error.message)
-        errRef.current?.focus()
+      let profile: { id: string; username: string; role?: number | null } | null = null
+      try {
+        profile = await apiFetch('/api/v1/me')
+      } catch {
+        profile = null
+      }
+
+      const payload = decodeJwtPayload(tokens.access_token)
+      const id = profile?.id ?? payload?.pid ?? payload?.sub
+      if (!id) {
+        setErrMsg('Registro completado pero no se pudo iniciar sesión')
         return
       }
 
-      setSuccess(true)
-    } catch {
-      setErrMsg("Error al registrarse. Por favor, intente de nuevo.")
+      authContext?.setAuth({
+        id,
+        email: payload?.email ?? email,
+        user: profile?.username ?? user,
+        role: profile?.role ?? ROLES.user,
+        accessToken: tokens.access_token,
+      })
+
+      navigate('/home', { replace: true })
+    } catch (err) {
+      setErrMsg(err instanceof Error ? err.message : 'Error al registrarse. Por favor, intente de nuevo.')
       errRef.current?.focus()
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md text-center shadow-lg">
-          <CardHeader className="pb-4">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <CheckCircle2 className="h-8 w-8 text-foreground" />
-            </div>
-            <CardTitle className="text-2xl">¡Registro exitoso!</CardTitle>
-            <CardDescription className="text-base">
-              Revisa tu correo y confirma tu cuenta. Después podrás iniciar sesión.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link to="/login">Iniciar sesión</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -165,7 +154,7 @@ export const Register = () => {
             onChange={(e) => setUser(e.target.value)}
             value={user}
             required
-            aria-invalid={validName ? "false" : "true"}
+            aria-invalid={validName ? 'false' : 'true'}
             placeholder="ejemplo_usuario"
           />
           {user && !validName && (
@@ -190,7 +179,7 @@ export const Register = () => {
             onChange={(e) => setEmail(e.target.value)}
             value={email}
             required
-            aria-invalid={validEmail ? "false" : "true"}
+            aria-invalid={validEmail ? 'false' : 'true'}
             placeholder="tu@email.com"
           />
           {email && !validEmail && (
@@ -212,12 +201,12 @@ export const Register = () => {
             onChange={(e) => setPwd(e.target.value)}
             value={pwd}
             required
-            aria-invalid={validPwd ? "false" : "true"}
+            aria-invalid={validPwd ? 'false' : 'true'}
             placeholder="••••••••"
           />
           {pwd && !validPwd && (
             <p className="text-xs text-muted-foreground">
-              8–24 caracteres, al menos una mayúscula y un número.
+              Mínimo 12 caracteres, al menos una mayúscula y un número.
             </p>
           )}
         </div>
@@ -237,7 +226,7 @@ export const Register = () => {
             onChange={(e) => setMatchPwd(e.target.value)}
             value={matchPwd}
             required
-            aria-invalid={validMatch ? "false" : "true"}
+            aria-invalid={validMatch ? 'false' : 'true'}
             placeholder="••••••••"
           />
           {matchPwd && !validMatch && (
@@ -252,16 +241,16 @@ export const Register = () => {
             !validName || !validPwd || !validMatch || !validEmail || isLoading
           }
         >
-          {isLoading ? "Registrando..." : "Registrarse"}
+          {isLoading ? 'Registrando...' : 'Registrarse'}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        ¿Ya tienes cuenta?{" "}
+        ¿Ya tienes cuenta?{' '}
         <Link
           to="/login"
           className={cn(
-            "font-medium text-primary hover:underline underline-offset-4"
+            'font-medium text-primary hover:underline underline-offset-4'
           )}
         >
           Inicia sesión

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Control de Gastos">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Gastito">
   <!-- Full-bleed square: iOS applies its own mask; avoid pre-rounded corners. -->
   <rect width="180" height="180" fill="#141416"/>
   <g transform="translate(30, 30) scale(5)" fill="none" stroke="#FAFAFA" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">

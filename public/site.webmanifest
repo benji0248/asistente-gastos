@@ -1,7 +1,7 @@
 {
-  "name": "Control de Gastos",
-  "short_name": "Gastos",
-  "description": "Control de gastos personales",
+  "name": "Gastito",
+  "short_name": "Gastito",
+  "description": "Gestión de gastos personales con Gastito",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#141416",

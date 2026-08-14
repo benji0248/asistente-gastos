@@ -155,7 +155,7 @@ function TarjetasCredito() {
     } catch (err) {
       console.error("Error guardando resumen", err)
       setLoadError(
-        "No se pudo guardar el resumen. Verificá la migración SQL en Supabase."
+        "No se pudo guardar el resumen. Verificá que gastos-api esté en ejecución."
       )
     } finally {
       setSavingImport(false)

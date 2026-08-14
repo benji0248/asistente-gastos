@@ -4,7 +4,7 @@ import type {
   HouseholdMember,
   HouseholdRecurringExpense,
 } from '@/types'
-import { supabase, throwIfError } from './client'
+import { apiFetch } from '@/lib/api/http'
 
 export interface HouseholdData {
   household: Household | null
@@ -13,201 +13,65 @@ export interface HouseholdData {
 }
 
 export async function fetchHouseholdData(): Promise<HouseholdData> {
-  const householdId = await getMyHouseholdId()
-
-  const [householdRes, membersRes, invitesRes] = await Promise.all([
-    householdId
-      ? supabase.from('households').select('*').eq('id', householdId).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-    householdId
-      ? supabase
-          .from('household_members')
-          .select('user_id, role, profiles(id, username)')
-          .eq('household_id', householdId)
-          .eq('status', 'accepted')
-      : Promise.resolve({ data: [], error: null }),
-    fetchPendingInvites(),
-  ])
-
-  throwIfError(householdRes.error)
-  throwIfError(membersRes.error)
-
-  const members: HouseholdMember[] = (membersRes.data ?? []).map((row) => {
-    const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles
-    return {
-      id: row.user_id,
-      username: profile?.username ?? 'usuario',
-      role: row.role as 'owner' | 'member',
-    }
-  })
-
-  return {
-    household: (householdRes.data as Household | null) ?? null,
-    members,
-    invites: invitesRes,
-  }
+  return apiFetch<HouseholdData>('/api/v1/household')
 }
 
-async function getMyHouseholdId(): Promise<string | null> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = session.session?.user.id
-  if (!userId) return null
-
-  const { data, error } = await supabase
-    .from('household_members')
-    .select('household_id')
-    .eq('user_id', userId)
-    .eq('status', 'accepted')
-    .maybeSingle()
-
-  if (error) throw error
-  return data?.household_id ?? null
+export async function getMyHouseholdId(): Promise<string | null> {
+  const data = await fetchHouseholdData()
+  return data.household?.id ?? null
 }
-
-export { getMyHouseholdId }
 
 export async function fetchPendingInvites(): Promise<HouseholdInvite[]> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = session.session?.user.id
-  const email = session.session?.user.email?.toLowerCase()
-
-  if (!userId) return []
-
-  let query = supabase
-    .from('household_invites')
-    .select('*, households(id, name), profiles!household_invites_invited_by_fkey(id, username)')
-    .eq('status', 'pending')
-
-  if (email) {
-    query = query.or(`invitee_user_id.eq.${userId},invitee_email.eq.${email}`)
-  } else {
-    query = query.eq('invitee_user_id', userId)
-  }
-
-  const { data, error } = await query
-  throwIfError(error)
-  return (data ?? []) as HouseholdInvite[]
+  const data = await fetchHouseholdData()
+  return data.invites ?? []
 }
 
 export async function createHousehold(name: string): Promise<void> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = session.session?.user.id
-  if (!userId) throw new Error('No autenticado')
-
-  const existing = await fetchHouseholdData()
-  if (existing.household) return
-
-  const { data: household, error } = await supabase
-    .from('households')
-    .insert({ name, created_by: userId })
-    .select('*')
-    .single()
-  throwIfError(error)
-
-  const { error: memberError } = await supabase.from('household_members').insert({
-    household_id: household.id,
-    user_id: userId,
-    role: 'owner',
-    status: 'accepted',
+  await apiFetch('/api/v1/household', {
+    method: 'POST',
+    body: { name },
   })
-  throwIfError(memberError)
 }
 
 export async function inviteMember(identifier: string): Promise<void> {
-  const { error } = await supabase.rpc('invite_household_member', {
-    p_identifier: identifier,
+  await apiFetch('/api/v1/household/invites', {
+    method: 'POST',
+    body: { identifier },
   })
-  throwIfError(error)
 }
 
 export async function acceptInvite(inviteId: string): Promise<void> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = session.session?.user.id
-  if (!userId) throw new Error('No autenticado')
-
-  const { data: invite, error } = await supabase
-    .from('household_invites')
-    .select('*')
-    .eq('id', inviteId)
-    .eq('status', 'pending')
-    .maybeSingle()
-  throwIfError(error)
-  if (!invite) throw new Error('Invitación no encontrada')
-
-  const { error: memberError } = await supabase.from('household_members').upsert({
-    household_id: invite.household_id,
-    user_id: userId,
-    role: 'member',
-    status: 'accepted',
-    joined_at: new Date().toISOString(),
+  await apiFetch(`/api/v1/household/invites/${inviteId}/accept`, {
+    method: 'POST',
   })
-  throwIfError(memberError)
-
-  const { error: inviteError } = await supabase
-    .from('household_invites')
-    .update({
-      status: 'accepted',
-      invitee_user_id: userId,
-      responded_at: new Date().toISOString(),
-    })
-    .eq('id', inviteId)
-  throwIfError(inviteError)
 }
 
 export async function rejectInvite(inviteId: string): Promise<void> {
-  const { error } = await supabase
-    .from('household_invites')
-    .update({ status: 'rejected', responded_at: new Date().toISOString() })
-    .eq('id', inviteId)
-  throwIfError(error)
+  await apiFetch(`/api/v1/household/invites/${inviteId}/reject`, {
+    method: 'POST',
+  })
 }
 
 export async function leaveHousehold(memberUserId?: string): Promise<void> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = memberUserId ?? session.session?.user.id
-  if (!userId) return
-
-  const { household } = await fetchHouseholdData()
-  if (!household) return
-
-  const { error } = await supabase
-    .from('household_members')
-    .delete()
-    .eq('household_id', household.id)
-    .eq('user_id', userId)
-  throwIfError(error)
-
-  const { data: remaining } = await supabase
-    .from('household_members')
-    .select('user_id')
-    .eq('household_id', household.id)
-
-  if (!remaining?.length) {
-    await supabase.from('households').delete().eq('id', household.id)
-  }
+  await apiFetch('/api/v1/household/leave', {
+    method: 'POST',
+    body: memberUserId ? { member_user_id: memberUserId } : {},
+  })
 }
 
 export async function setSharedCash(enabled: boolean): Promise<void> {
-  const { error } = await supabase.rpc('set_shared_cash', { p_enabled: enabled })
-  throwIfError(error)
+  await apiFetch('/api/v1/household/shared-cash', {
+    method: 'POST',
+    body: { enabled },
+  })
 }
 
 export async function ensureRecurringExpenses(): Promise<void> {
-  const { error } = await supabase.rpc('ensure_recurring_expenses')
-  throwIfError(error)
+  await apiFetch('/api/v1/household/ensure-recurring', { method: 'POST' })
 }
 
 export async function listRecurringExpenses(): Promise<HouseholdRecurringExpense[]> {
-  const householdId = await getMyHouseholdId()
-  if (!householdId) return []
-
-  const { data, error } = await supabase
-    .from('household_recurring_expenses')
-    .select('*')
-    .eq('household_id', householdId)
-    .order('title')
-  throwIfError(error)
-  return (data ?? []) as HouseholdRecurringExpense[]
+  return apiFetch<HouseholdRecurringExpense[]>('/api/v1/household/recurring')
 }
 
 export async function createRecurringExpense(payload: {
@@ -216,20 +80,15 @@ export async function createRecurringExpense(payload: {
   fixed_amount: number
   category_id?: number | null
 }): Promise<void> {
-  const { data: session } = await supabase.auth.getSession()
-  const userId = session.session?.user.id
-  const householdId = await getMyHouseholdId()
-  if (!userId || !householdId) throw new Error('No hay hogar')
-
-  const { error } = await supabase.from('household_recurring_expenses').insert({
-    household_id: householdId,
-    title: payload.title.trim(),
-    amount_type: payload.amount_type,
-    fixed_amount: payload.fixed_amount,
-    category_id: payload.category_id ?? null,
-    created_by: userId,
+  await apiFetch('/api/v1/household/recurring', {
+    method: 'POST',
+    body: {
+      title: payload.title.trim(),
+      amount_type: payload.amount_type,
+      fixed_amount: payload.fixed_amount,
+      category_id: payload.category_id ?? null,
+    },
   })
-  throwIfError(error)
   await ensureRecurringExpenses()
 }
 
@@ -242,19 +101,17 @@ export async function updateRecurringExpense(
     category_id?: number | null
   }
 ): Promise<void> {
-  const { error } = await supabase
-    .from('household_recurring_expenses')
-    .update({
+  await apiFetch(`/api/v1/household/recurring/${id}`, {
+    method: 'PATCH',
+    body: {
       title: payload.title.trim(),
       amount_type: payload.amount_type,
       fixed_amount: payload.fixed_amount,
       category_id: payload.category_id ?? null,
-    })
-    .eq('id', id)
-  throwIfError(error)
+    },
+  })
 }
 
 export async function deleteRecurringExpense(id: string): Promise<void> {
-  const { error } = await supabase.from('household_recurring_expenses').delete().eq('id', id)
-  throwIfError(error)
+  await apiFetch(`/api/v1/household/recurring/${id}`, { method: 'DELETE' })
 }

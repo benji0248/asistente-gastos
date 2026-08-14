@@ -4,11 +4,9 @@ import type {
   PaginatedExpensesResponse,
   newExpense,
 } from '@/types'
-import { supabase, throwIfError } from './client'
-import { monthDateRange } from './dateRange'
+import { apiFetch } from '@/lib/api/http'
 import {
   buildExpenseUpdatePatch,
-  computeExpenseBalanceAdjustments,
   type ExpenseUpdateInput,
 } from '@/lib/expenseUpdate'
 
@@ -22,74 +20,32 @@ export interface ListByMonthOptions {
   payment?: ExpensePaymentFilter
 }
 
-export async function listByMonthPaginated(
-  options: ListByMonthOptions
-): Promise<PaginatedExpensesResponse> {
-  const page = Math.max(1, options.page ?? 1)
-  const limit = Math.min(100, Math.max(1, options.limit ?? 10))
-  const payment = options.payment ?? 'all'
-  const from = (page - 1) * limit
-  const to = from + limit - 1
-  const { start, end } = monthDateRange(options.month, options.year)
-
-  const [summaryResult, pageResult] = await Promise.all([
-    getMonthSummary(options.month, options.year),
-    (async () => {
-      let query = supabase
-        .from('expenses')
-        .select('*', { count: 'exact' })
-        .gte('created_at', start)
-        .lte('created_at', end)
-
-      if (payment === 'paid') query = query.eq('is_paid', true)
-      if (payment === 'unpaid') query = query.eq('is_paid', false)
-
-      return query
-        .order('is_paid', { ascending: true })
-        .order('payment_date', { ascending: false, nullsFirst: false })
-        .range(from, to)
-    })(),
-  ])
-
-  throwIfError(pageResult.error)
-
-  const total = pageResult.count ?? 0
+function normalizeExpense(row: Expense): Expense {
   return {
-    data: (pageResult.data ?? []) as Expense[],
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
-    },
-    summary: summaryResult,
+    ...row,
+    id: String(row.id),
+    category_id: row.category_id != null ? String(row.category_id) : '',
+    account_id: row.account_id != null ? String(row.account_id) : '',
+    amount: Number(row.amount),
+    amount_paid: row.amount_paid != null ? Number(row.amount_paid) : undefined,
   }
 }
 
-function computeMonthSummary(
-  rows: { amount: number | null; amount_paid: number | null; is_paid: boolean | null }[]
-): ExpensesMonthSummary {
-  let pendingCount = 0
-  let paidTotal = 0
-  let pendingTotal = 0
+export async function listByMonthPaginated(
+  options: ListByMonthOptions
+): Promise<PaginatedExpensesResponse> {
+  const params = new URLSearchParams({
+    month: String(options.month),
+    year: String(options.year),
+    page: String(options.page ?? 1),
+    limit: String(options.limit ?? 10),
+    payment: options.payment ?? 'all',
+  })
 
-  for (const row of rows) {
-    const amount = Number(row.amount ?? 0)
-    const amountPaid = Number(row.amount_paid ?? 0)
-    if (row.is_paid) {
-      paidTotal += amount
-    } else {
-      pendingCount++
-      paidTotal += amountPaid
-      pendingTotal += Math.max(0, amount - amountPaid)
-    }
-  }
-
+  const result = await apiFetch<PaginatedExpensesResponse>(`/api/v1/expenses?${params}`)
   return {
-    pendingCount,
-    paidTotal,
-    pendingTotal,
-    monthTotal: paidTotal + pendingTotal,
+    ...result,
+    data: (result.data ?? []).map(normalizeExpense),
   }
 }
 
@@ -97,153 +53,97 @@ export async function getMonthSummary(
   month: number,
   year: number
 ): Promise<ExpensesMonthSummary> {
-  const { data, error } = await supabase.rpc('get_expenses_month_summary', {
-    p_month: month,
-    p_year: year,
+  const params = new URLSearchParams({
+    month: String(month),
+    year: String(year),
   })
-
-  if (!error && data) {
-    return data as ExpensesMonthSummary
-  }
-
-  const { start, end } = monthDateRange(month, year)
-  const { data: rows, error: queryError } = await supabase
-    .from('expenses')
-    .select('amount, amount_paid, is_paid')
-    .gte('created_at', start)
-    .lte('created_at', end)
-
-  throwIfError(queryError)
-  return computeMonthSummary(rows ?? [])
+  return apiFetch<ExpensesMonthSummary>(`/api/v1/expenses/summary?${params}`)
 }
 
 export async function listAll(): Promise<Expense[]> {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .order('created_at', { ascending: false })
-  throwIfError(error)
-  return (data ?? []) as Expense[]
+  const result = await apiFetch<PaginatedExpensesResponse>(
+    '/api/v1/expenses?page=1&limit=1000&payment=all'
+  )
+  return (result.data ?? []).map(normalizeExpense)
+}
+
+export interface HomeOverview {
+  pendingCount: number
+  paidCount: number
+  recent: Expense[]
+}
+
+export async function getHomeOverview(): Promise<HomeOverview> {
+  const result = await apiFetch<{
+    pendingCount?: number
+    pending_count?: number
+    paidCount?: number
+    paid_count?: number
+    recent?: Expense[]
+  }>('/api/v1/expenses/overview')
+
+  return {
+    pendingCount: Number(result.pending_count ?? result.pendingCount ?? 0),
+    paidCount: Number(result.paid_count ?? result.paidCount ?? 0),
+    recent: (result.recent ?? []).map(normalizeExpense),
+  }
 }
 
 export async function getAvailableMonths(): Promise<{ month: number; year: number }[]> {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('created_at')
-    .not('created_at', 'is', null)
-  throwIfError(error)
-
-  const seen = new Set<string>()
-  const months: { month: number; year: number }[] = []
-
-  for (const row of data ?? []) {
-    const date = new Date(row.created_at)
-    const month = date.getUTCMonth() + 1
-    const year = date.getUTCFullYear()
-    const key = `${year}-${month}`
-    if (!seen.has(key)) {
-      seen.add(key)
-      months.push({ month, year })
-    }
-  }
-
-  months.sort((a, b) => b.year - a.year || b.month - a.month)
-  return months
+  return apiFetch<{ month: number; year: number }[]>('/api/v1/expenses/months')
 }
 
 export async function createExpense(
   userId: string,
   payload: newExpense,
   visibleUserIds: string[]
-): Promise<void> {
+): Promise<Expense> {
   const ownerId =
     payload.user_id && visibleUserIds.includes(payload.user_id)
       ? payload.user_id
       : userId
 
-  if (payload.is_paid && payload.account_id) {
-    const { error } = await supabase.from('expenses').insert({
+  const created = await apiFetch<Expense>('/api/v1/expenses', {
+    method: 'POST',
+    body: {
       title: payload.title,
       amount: payload.amount,
-      amount_paid: payload.amount,
-      payment_date: new Date().toISOString(),
-      is_paid: true,
+      is_paid: payload.is_paid,
       user_id: ownerId,
-      category_id: payload.category_id || null,
-      account_id: payload.account_id,
-    })
-    throwIfError(error)
-    await payExpenseViaBalance(payload.account_id, payload.amount)
-    return
-  }
-
-  const { error } = await supabase.from('expenses').insert({
-    title: payload.title,
-    amount: payload.amount,
-    amount_paid: 0,
-    is_paid: false,
-    user_id: ownerId,
-    category_id: payload.category_id || null,
-    account_id: payload.account_id || null,
+      category_id: payload.category_id ? Number(payload.category_id) : null,
+      account_id: payload.account_id ? Number(payload.account_id) : null,
+    },
   })
-  throwIfError(error)
-}
 
-async function payExpenseViaBalance(accountId: string, amount: number) {
-  const { error } = await supabase.rpc('adjust_account_balance', {
-    p_account_id: Number(accountId),
-    p_delta: -amount,
-  })
-  throwIfError(error)
+  return normalizeExpense(created)
 }
 
 export async function updateExpense(
   expenseId: string,
   updates: ExpenseUpdateInput
 ): Promise<void> {
-  const { data: current, error: fetchError } = await supabase
-    .from('expenses')
-    .select(
-      'title, amount, is_paid, amount_paid, payment_date, category_id, account_id'
-    )
-    .eq('id', expenseId)
-    .single()
-  throwIfError(fetchError)
-  if (!current) {
-    throw new Error('No se encontró el gasto a editar')
-  }
-
-  const patch = buildExpenseUpdatePatch(current as Expense, updates)
-  const balanceAdjustments = computeExpenseBalanceAdjustments(
-    current as Expense,
-    patch
+  const current = normalizeExpense(
+    await apiFetch<Expense>(`/api/v1/expenses/${expenseId}`)
   )
 
-  const { error } = await supabase
-    .from('expenses')
-    .update(patch)
-    .eq('id', expenseId)
-  throwIfError(error)
+  const patch = buildExpenseUpdatePatch(current, updates)
 
-  for (const adjustment of balanceAdjustments) {
-    const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
-      p_account_id: Number(adjustment.accountId),
-      p_delta: adjustment.delta,
-    })
-    throwIfError(balanceError)
-  }
-
-  if (updates.household_recurring_expense_id && patch.amount) {
-    await supabase
-      .from('household_recurring_expenses')
-      .update({ fixed_amount: patch.amount })
-      .eq('id', updates.household_recurring_expense_id)
-  }
+  await apiFetch(`/api/v1/expenses/${expenseId}`, {
+    method: 'PATCH',
+    body: {
+      title: patch.title,
+      amount: patch.amount,
+      is_paid: patch.is_paid,
+      category_id: patch.category_id != null ? Number(patch.category_id) : null,
+      account_id: patch.account_id != null ? Number(patch.account_id) : null,
+      payment_date: patch.payment_date,
+      household_recurring_expense_id: updates.household_recurring_expense_id,
+    },
+  })
 }
 
 export async function deleteExpense(expenseId: string): Promise<void> {
-  const { error } = await supabase.from('expenses').delete().eq('id', expenseId)
-  throwIfError(error)
+  await apiFetch(`/api/v1/expenses/${expenseId}`, { method: 'DELETE' })
 }
 
 export async function payExpense(
@@ -251,24 +151,39 @@ export async function payExpense(
   amount: number,
   accountId: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('pay_expense', {
-    p_expense_id: Number(expenseId),
-    p_payment_amount: amount,
-    p_account_id: Number(accountId),
-  })
-  if (error?.message?.includes('INVALID_PAYMENT_AMOUNT')) {
-    throw new Error('El monto supera lo que falta pagar')
+  try {
+    await apiFetch(`/api/v1/expenses/${expenseId}/pay`, {
+      method: 'POST',
+      body: {
+        amount,
+        account_id: Number(accountId),
+      },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : ''
+    if (message.includes('INVALID_PAYMENT_AMOUNT')) {
+      throw new Error('El monto supera lo que falta pagar')
+    }
+    throw err
   }
-  throwIfError(error)
 }
 
 export async function completeExpense(
   expenseId: string,
   accountId: string
 ): Promise<void> {
-  const { error } = await supabase.rpc('complete_expense', {
-    p_expense_id: Number(expenseId),
-    p_account_id: Number(accountId),
+  await apiFetch(`/api/v1/expenses/${expenseId}/complete`, {
+    method: 'POST',
+    body: {
+      account_id: Number(accountId),
+    },
   })
-  throwIfError(error)
+}
+
+export async function getExpense(expenseId: string | number): Promise<Expense | null> {
+  try {
+    return normalizeExpense(await apiFetch<Expense>(`/api/v1/expenses/${expenseId}`))
+  } catch {
+    return null
+  }
 }

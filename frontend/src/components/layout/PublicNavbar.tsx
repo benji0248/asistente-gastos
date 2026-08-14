@@ -14,7 +14,7 @@ export function PublicNavbar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground text-background shadow-soft">
             <Wallet className="h-5 w-5" />
           </div>
-          <span>Control de Gastos</span>
+          <span>Gastito</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">

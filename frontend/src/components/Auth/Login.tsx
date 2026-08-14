@@ -1,26 +1,29 @@
-import { useEffect, useRef, useState, type FormEvent } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
-import { AlertCircle } from "lucide-react"
-import useAuth from "@/hooks/useAuth"
-import { supabase } from "@/lib/supabase"
-import { AuthLayout } from "@/components/layout/AuthLayout"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { AlertCircle } from 'lucide-react'
+import useAuth from '@/hooks/useAuth'
+import { login, persistTokens } from '@/lib/auth/identity'
+import { decodeJwtPayload } from '@/lib/auth/session'
+import { apiFetch } from '@/lib/api/http'
+import { ROLES } from '@/consts'
+import { AuthLayout } from '@/components/layout/AuthLayout'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export const Login = () => {
   const { auth, setAuth } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname || "/"
+  const from = location.state?.from?.pathname || '/'
 
   const emailRef = useRef<HTMLInputElement>(null)
   const errRef = useRef<HTMLParagraphElement>(null)
 
-  const [email, setEmail] = useState<string>("")
-  const [pwd, setPwd] = useState<string>("")
-  const [errMsg, setErrMsg] = useState<string>("")
+  const [email, setEmail] = useState<string>('')
+  const [pwd, setPwd] = useState<string>('')
+  const [errMsg, setErrMsg] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -34,7 +37,7 @@ export const Login = () => {
   }, [auth, navigate])
 
   useEffect(() => {
-    setErrMsg("")
+    setErrMsg('')
   }, [email, pwd])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -42,42 +45,48 @@ export const Login = () => {
     setIsLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd })
+      const tokens = await login({ email, password: pwd })
+      persistTokens(tokens)
 
-      if (error) {
-        setErrMsg(error.message === 'Invalid login credentials'
-          ? 'Email o contraseña incorrectos'
-          : error.message)
-        errRef.current?.focus()
-        return
+      let profile: { id: string; username: string; role?: number | null } | null = null
+      try {
+        profile = await apiFetch('/api/v1/me')
+      } catch {
+        profile = null
       }
 
-      const session = data.session
-      if (!session) {
+      const payload = decodeJwtPayload(tokens.access_token)
+      const id = profile?.id ?? payload?.pid ?? payload?.sub
+      if (!id) {
         setErrMsg('No se pudo iniciar sesión')
         return
       }
 
       const username =
-        (session.user.user_metadata?.username as string | undefined) ??
-        session.user.email?.split('@')[0] ??
+        profile?.username ??
+        (typeof payload?.name === 'string' ? payload.name : undefined) ??
+        email.split('@')[0] ??
         email
 
-      const id = session.user.id
       setAuth({
         id,
-        email: session.user.email ?? email,
+        email: payload?.email ?? email,
         user: username,
-        role: 1712,
-        accessToken: session.access_token,
+        role: profile?.role ?? ROLES.user,
+        accessToken: tokens.access_token,
       })
 
-      setEmail("")
-      setPwd("")
-      const redirectionPath = from.replace(":userId", id)
+      setEmail('')
+      setPwd('')
+      const redirectionPath = from.replace(':userId', id)
       navigate(redirectionPath, { replace: true })
-    } catch {
-      setErrMsg("Error al iniciar sesión. Por favor, intente de nuevo.")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al iniciar sesión'
+      setErrMsg(
+        message.toLowerCase().includes('invalid') || message.toLowerCase().includes('credential')
+          ? 'Email o contraseña incorrectos'
+          : message
+      )
       errRef.current?.focus()
     } finally {
       setIsLoading(false)
@@ -127,12 +136,12 @@ export const Login = () => {
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        ¿No tienes cuenta?{" "}
+        ¿No tienes cuenta?{' '}
         <Link
           to="/register"
           className="font-medium text-primary hover:underline underline-offset-4"

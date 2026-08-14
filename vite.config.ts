@@ -18,10 +18,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
+      '/api/v1/auth': { target: 'http://127.0.0.1:3001', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:3002', changeOrigin: true },
     },
   },
 })

@@ -1,39 +1,39 @@
 import type { Category, newCategory } from '@/types'
-import { supabase, throwIfError } from './client'
+import { apiFetch } from '@/lib/api/http'
 
-export async function listCategories(activeOnly = false): Promise<Category[]> {
-  const { data, error } = await supabase.from('categories').select('*')
-  throwIfError(error)
-
-  let list = (data ?? []) as Category[]
-  if (activeOnly) {
-    list = list.filter((c) => c.is_enabled !== false)
+function normalizeCategory(row: Category): Category {
+  return {
+    ...row,
+    id: String(row.id),
   }
-
-  return list.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export async function createCategory(userId: string, name: string): Promise<Category> {
-  const { data, error } = await supabase
-    .from('categories')
-    .insert({ user_id: userId, name, is_system: false, is_enabled: true })
-    .select('*')
-    .single()
-  throwIfError(error)
-  return data as Category
+export async function listCategories(activeOnly = false): Promise<Category[]> {
+  const query = activeOnly ? '?active=true' : ''
+  const rows = await apiFetch<Category[]>(`/api/v1/categories${query}`)
+  return (rows ?? []).map(normalizeCategory).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function createCategory(_userId: string, name: string): Promise<Category> {
+  const created = await apiFetch<Category>('/api/v1/categories', {
+    method: 'POST',
+    body: { name },
+  })
+  return normalizeCategory(created)
 }
 
 export async function updateCategory(
   categoryId: string,
   updates: { is_enabled?: boolean; name?: string }
 ): Promise<void> {
-  const { error } = await supabase.from('categories').update(updates).eq('id', categoryId)
-  throwIfError(error)
+  await apiFetch(`/api/v1/categories/${categoryId}`, {
+    method: 'PATCH',
+    body: updates,
+  })
 }
 
 export async function deleteCategory(categoryId: string): Promise<void> {
-  const { error } = await supabase.from('categories').delete().eq('id', categoryId)
-  throwIfError(error)
+  await apiFetch(`/api/v1/categories/${categoryId}`, { method: 'DELETE' })
 }
 
 export type { newCategory }

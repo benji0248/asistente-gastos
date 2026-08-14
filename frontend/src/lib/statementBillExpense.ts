@@ -1,19 +1,21 @@
-import type { CreditCardStatement } from "@/lib/bbvaStatementParser"
-import { supabase, throwIfError } from "@/lib/db/client"
+import type { CreditCardStatement } from '@/lib/bbvaStatementParser'
+import { listCategories } from '@/lib/db/categories'
+import { apiFetch } from '@/lib/api/http'
+import { deleteExpense, getExpense } from '@/lib/db/expenses'
+import type { Expense } from '@/types'
 
 export function statementBillTitle(statement: CreditCardStatement): string {
-  const card = [statement.cardBrand, statement.cardTier].filter(Boolean).join(" ")
-  const base = card ? `Tarjeta ${card}` : "Tarjeta de crédito"
+  const card = [statement.cardBrand, statement.cardTier].filter(Boolean).join(' ')
+  const base = card ? `Tarjeta ${card}` : 'Tarjeta de crédito'
   return `${base} · vence ${statement.dueDate}`
 }
 
 async function findCreditCardCategoryId(): Promise<number | null> {
-  const { data, error } = await supabase.from("categories").select("id, name")
-  throwIfError(error)
-  const match = (data ?? []).find((c) =>
-    String(c.name).toLowerCase().includes("tarjeta")
+  const categories = await listCategories()
+  const match = categories.find((category) =>
+    category.name.toLowerCase().includes('tarjeta')
   )
-  return match ? Number(match.id) : null
+  return match?.id ? Number(match.id) : null
 }
 
 export async function createPendingBillExpense(
@@ -21,35 +23,30 @@ export async function createPendingBillExpense(
   statement: CreditCardStatement
 ): Promise<number> {
   const categoryId = await findCreditCardCategoryId()
-  const { data, error } = await supabase
-    .from("expenses")
-    .insert({
+  const created = await apiFetch<Expense>('/api/v1/expenses', {
+    method: 'POST',
+    body: {
       title: statementBillTitle(statement),
       amount: statement.totalBalanceArs,
-      amount_paid: 0,
       is_paid: false,
       user_id: userId,
       category_id: categoryId,
       account_id: null,
-    })
-    .select("id")
-    .single()
-  throwIfError(error)
-  if (!data?.id) throw new Error("No se pudo crear el gasto del resumen")
-  return Number(data.id)
+    },
+  })
+
+  if (!created?.id) {
+    throw new Error('No se pudo crear el gasto del resumen')
+  }
+
+  return Number(created.id)
 }
 
 export async function deleteLinkedBillExpenseIfUnpaid(
   expenseId: number
 ): Promise<void> {
-  const { data: expense } = await supabase
-    .from("expenses")
-    .select("is_paid")
-    .eq("id", expenseId)
-    .maybeSingle()
-
+  const expense = await getExpense(expenseId)
   if (expense && !expense.is_paid) {
-    const { error } = await supabase.from("expenses").delete().eq("id", expenseId)
-    throwIfError(error)
+    await deleteExpense(String(expenseId))
   }
 }

@@ -72,7 +72,7 @@ export function MobileNav() {
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
             <Wallet className="h-3.5 w-3.5" />
           </div>
-          <span className="truncate">Control de Gastos</span>
+          <span className="truncate">Gastito</span>
         </Link>
       </header>
 

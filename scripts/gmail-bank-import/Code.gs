@@ -8,7 +8,7 @@
 const EDGE_FUNCTION_URL = 'https://YOUR_PROJECT.supabase.co/functions/v1/bank-email-import';
 const USER_TOKEN = 'YOUR_IMPORT_TOKEN';
 const WEBHOOK_SECRET = 'YOUR_WEBHOOK_SECRET';
-const GMAIL_LABEL = 'AsistenteGastos';
+const GMAIL_LABEL = 'Gastito';
 
 function syncBankEmails() {
   const query = 'label:' + GMAIL_LABEL + ' is:unread';

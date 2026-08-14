@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS email_import_settings (
   default_account_id  INTEGER REFERENCES accounts(id) ON DELETE SET NULL,
   allowed_senders     TEXT[] NOT NULL DEFAULT '{}',
   enabled             BOOLEAN NOT NULL DEFAULT false,
-  gmail_label         TEXT NOT NULL DEFAULT 'AsistenteGastos',
+  gmail_label         TEXT NOT NULL DEFAULT 'Gastito',
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
