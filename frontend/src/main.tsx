@@ -6,18 +6,21 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthProvider.tsx'
 import { AppDataProvider } from './context/AppDataProvider.tsx'
 import { PrivacyAmountsProvider } from './context/PrivacyAmountsProvider.tsx'
+import { PlanProvider } from './context/PlanProvider.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <AppDataProvider>
-          <PrivacyAmountsProvider>
-            <Routes>
-              <Route path='/*' element={<App/>} />
-            </Routes>
-          </PrivacyAmountsProvider>
-        </AppDataProvider>
+        <PlanProvider>
+          <AppDataProvider>
+            <PrivacyAmountsProvider>
+              <Routes>
+                <Route path='/*' element={<App/>} />
+              </Routes>
+            </PrivacyAmountsProvider>
+          </AppDataProvider>
+        </PlanProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,

@@ -3,6 +3,8 @@ import dayjs from "dayjs"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
 import { useAppData } from "@/context/AppDataProvider"
+import { usePlan } from "@/context/PlanProvider"
+import { InlineUpgradeCard } from "@/components/billing/UpgradePaywall"
 import { getAvailableMonths, listAll } from "@/lib/db/expenses"
 import { normalizeMonths, type MonthYear } from "@/lib/monthUtils"
 import { balanceTotal } from "@/consts"
@@ -31,6 +33,7 @@ import { HorizontalBar, MonthBars } from "./StatsCharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -51,6 +54,7 @@ function Estadisticas() {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
   const { accounts, categories: contextCategories, loading: contextLoading } = useAppData()
+  const { entitlements, loading: planLoading } = usePlan()
   const { amountsVisible } = usePrivacyAmounts()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [availableMonths, setAvailableMonths] = useState<MonthYear[]>([])
@@ -59,7 +63,7 @@ function Estadisticas() {
   const [loading, setLoading] = useState(true)
 
   const categories = useMemo(
-    () => contextCategories.filter((c) => c.is_enabled !== false),
+    () => contextCategories.filter((c) => c.is_enabled !== false && !c.is_system),
     [contextCategories]
   )
 
@@ -195,12 +199,40 @@ function Estadisticas() {
           ? "down"
           : "neutral"
 
+  if (planLoading) {
+    return <SectionLoader minHeight="min-h-[60vh]" />
+  }
+
+  if (!entitlements.canUseStats) {
+    return (
+      <div className="space-y-5 sm:space-y-8">
+        <PageHeader
+          title="Estadísticas"
+          description="Disponible en Pro o durante el trial de 12 días"
+        />
+        <InlineUpgradeCard
+          feature="stats"
+          returnPath={auth?.id ? `/${auth.id}/estadisticas` : "/home"}
+          extra="Tu período de prueba de 12 días terminó. Activá Pro para seguir viendo el análisis."
+        />
+      </div>
+    )
+  }
+
   if (loading || contextLoading) {
     return <SectionLoader minHeight="min-h-[60vh]" />
   }
 
   return (
     <div className="space-y-5 sm:space-y-8">
+      {entitlements.statsTrialActive ? (
+        <Alert>
+          <AlertDescription>
+            Trial de estadísticas: te quedan {entitlements.statsTrialDaysLeft} día
+            {entitlements.statsTrialDaysLeft === 1 ? "" : "s"}. Después necesitás Pro.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <PageHeader
         title="Estadísticas"
         description={

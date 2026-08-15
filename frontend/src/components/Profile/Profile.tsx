@@ -17,6 +17,7 @@ import { PageHeader } from "../layout/PageHeader"
 import { PrivacyToggle } from "../layout/PrivacyToggle"
 import { SectionLoader } from "../layout/SectionLoader"
 import { Loader2 } from "lucide-react"
+import { PlanBillingCard } from "@/components/billing/PlanBillingCard"
 import { formatPrivateMoney } from "@/lib/formatMoney"
 import { usePrivacyAmounts } from "@/context/PrivacyAmountsProvider"
 import { useEffect } from "react"
@@ -49,6 +50,8 @@ function Profile() {
           </Badge>
         }
       />
+
+      <PlanBillingCard />
 
       {isLinked && household && (
         <Card>

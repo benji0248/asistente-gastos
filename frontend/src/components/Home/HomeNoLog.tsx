@@ -60,7 +60,7 @@ const HomeNoLog = () => {
               className="mb-8 gap-1.5 rounded-full px-4 py-1.5 text-sm shadow-soft"
             >
               <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-              Gratis y fácil de usar
+              Free para empezar · Pro desde USD 2.50/mes
             </Badge>
             <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl text-balance">
               Toma control de tus{" "}

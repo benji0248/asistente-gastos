@@ -8,6 +8,8 @@ import dayjs from "dayjs"
 import "dayjs/locale/es"
 import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
+import { usePlan } from "@/context/PlanProvider"
+import { UpgradePaywall } from "@/components/billing/UpgradePaywall"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/layout/PageHeader"
@@ -48,8 +50,10 @@ export const ExpenseHeader = ({
   onCategoryCreated,
 }: Props) => {
   const { auth } = useAuth()
+  const { entitlements } = usePlan()
   const { amountsVisible } = usePrivacyAmounts()
   const [scanResult, setScanResult] = useState<ReceiptParseResult | null>(null)
+  const [showScanUpgrade, setShowScanUpgrade] = useState(false)
 
   const monthLabel =
     selectedMonth !== null && selectedYear !== null
@@ -148,14 +152,24 @@ export const ExpenseHeader = ({
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>button]:min-h-11 [&>button]:w-full sm:[&>button]:w-auto">
-        <ScanReceipt
-          categories={categories}
-          accounts={accounts}
-          onParsed={setScanResult}
-          onExpenseCreated={() =>
-            onExpenseMutated?.({ preferCurrentMonth: true })
-          }
-        />
+        {entitlements.canScanReceipts ? (
+          <ScanReceipt
+            categories={categories}
+            accounts={accounts}
+            onParsed={setScanResult}
+            onExpenseCreated={() =>
+              onExpenseMutated?.({ preferCurrentMonth: true })
+            }
+          />
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => setShowScanUpgrade(true)}
+            className="min-h-11"
+          >
+            Escanear ticket · Pro
+          </Button>
+        )}
         <CreateExpense
           categories={categories}
           accounts={accounts}
@@ -175,6 +189,12 @@ export const ExpenseHeader = ({
           </Button>
         )}
       </div>
+      <UpgradePaywall
+        open={showScanUpgrade}
+        onOpenChange={setShowScanUpgrade}
+        feature="scan_receipts"
+        returnPath={auth?.id ? `/${auth.id}/expenses` : "/home"}
+      />
     </div>
   )
 }
