@@ -7,6 +7,7 @@ import Profile from "./components/Profile/Profile"
 import Hogar from "./components/Hogar/Hogar"
 import Estadisticas from "./components/Stats/Estadisticas"
 import TarjetasCredito from "./components/Tarjetas/TarjetasCredito"
+import AdminUsers from "./components/Admin/AdminUsers"
 import Home from "./components/Home/Home"
 import { HomeLogged } from "./components/Home/HomeLogged"
 import PersistLogin from "./components/PersistLogin"
@@ -22,7 +23,7 @@ function App() {
       <Route element={<PersistLogin />}>
         <Route path="/" element={<Home />} />
 
-        <Route element={<RequireAuth allowedRoles={[ROLES.user]} />}>
+        <Route element={<RequireAuth allowedRoles={[ROLES.user, ROLES.admin]} />}>
           <Route element={<DashboardLayout />}>
             <Route path="/home" element={<HomeLogged />} />
             <Route path="/:userId/expenses" element={<Expenses />} />
@@ -30,6 +31,12 @@ function App() {
             <Route path="/:userId/tarjetas" element={<TarjetasCredito />} />
             <Route path="/:userId/hogar" element={<Hogar />} />
             <Route path="/:userId/profile" element={<Profile />} />
+          </Route>
+        </Route>
+
+        <Route element={<RequireAuth allowedRoles={[ROLES.admin]} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
         </Route>
       </Route>
