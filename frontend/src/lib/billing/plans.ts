@@ -82,6 +82,11 @@ export function isBillingSelfHosted(): boolean {
   return mode === "selfhosted" || mode === "self-hosted"
 }
 
+/** Stripe Checkout only when explicitly enabled (avoid accidental Pro activation). */
+export function isCheckoutEnabled(): boolean {
+  return import.meta.env.VITE_BILLING_CHECKOUT_ENABLED === "true"
+}
+
 export function daysLeftUntil(iso: string | null | undefined, now = new Date()): number {
   if (!iso) return 0
   const end = new Date(iso)

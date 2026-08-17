@@ -4,6 +4,7 @@ import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
 import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionLoader } from "@/components/layout/SectionLoader"
 import { InlineUpgradeCard } from "@/components/billing/UpgradePaywall"
@@ -68,6 +69,7 @@ function TarjetasCredito() {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
   const { entitlements, loading: planLoading } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
   const [viewMonth, setViewMonth] = useState(initialViewMonth)
   const [statements, setStatements] = useState<StoredCreditCardStatement[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,6 +205,12 @@ function TarjetasCredito() {
         <InlineUpgradeCard
           feature="credit_cards"
           returnPath={auth?.id ? `/${auth.id}/tarjetas` : "/home"}
+          onUpgradeClick={() =>
+            openUpgrade({
+              feature: "credit_cards",
+              returnPath: auth?.id ? `/${auth.id}/tarjetas` : "/home",
+            })
+          }
         />
       </div>
     )

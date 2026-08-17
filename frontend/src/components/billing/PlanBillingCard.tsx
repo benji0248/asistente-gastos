@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { FREE_MAX_CATEGORIES, PRO_PRICE_USD } from "@/lib/billing/plans"
 
 const PRO_PERKS = [
@@ -17,11 +18,11 @@ export function PlanBillingCard() {
   const {
     entitlements,
     subscription,
-    startCheckout,
     openBillingPortal,
     checkoutLoading,
     loading,
   } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
 
   if (entitlements.isSelfHosted) {
     return (
@@ -98,12 +99,9 @@ export function PlanBillingCard() {
             </ul>
             <Button
               disabled={checkoutLoading}
-              onClick={() => void startCheckout(window.location.pathname)}
+              onClick={() => openUpgrade({ returnPath: window.location.pathname })}
             >
-              {checkoutLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Pasarme a Pro · ${PRO_PRICE_USD.toFixed(2)}/mes
+              Ver plan Pro · ${PRO_PRICE_USD.toFixed(2)}/mes
             </Button>
           </>
         )}

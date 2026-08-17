@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
 import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { ensureRecurringExpenses } from "@/lib/db/household"
 import { PageHeader } from "../layout/PageHeader"
 import { HouseholdSettings } from "./HouseholdSettings"
@@ -16,6 +17,7 @@ function Hogar() {
   const { auth } = useAuth()
   const { household, members, loading, fetchError, refreshHousehold } = useHousehold()
   const { entitlements, loading: planLoading } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
 
   useEffect(() => {
     if (!entitlements.canUseHousehold) return
@@ -37,6 +39,12 @@ function Hogar() {
           feature="household"
           returnPath={auth?.id ? `/${auth.id}/hogar` : "/home"}
           extra="En Free solo podés usar Gastito de forma individual."
+          onUpgradeClick={() =>
+            openUpgrade({
+              feature: "household",
+              returnPath: auth?.id ? `/${auth.id}/hogar` : "/home",
+            })
+          }
         />
       </div>
     )

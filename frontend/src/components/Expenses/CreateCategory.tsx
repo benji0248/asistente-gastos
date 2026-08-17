@@ -2,9 +2,9 @@ import { useMemo, useState } from "react"
 import useAuth from "../../hooks/useAuth"
 import { useAppData } from "@/context/AppDataProvider"
 import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { createCategory } from "@/lib/db/categories"
 import { canCreateCategory, FREE_MAX_CATEGORIES } from "@/lib/billing/plans"
-import { UpgradePaywall } from "@/components/billing/UpgradePaywall"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,9 +20,9 @@ function CreateCategory({ onCreated }: { onCreated?: () => void }) {
   const { auth } = useAuth()
   const { categories } = useAppData()
   const { entitlements } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
   const [name, setName] = useState<string>("")
   const [show, setShow] = useState<boolean>(false)
-  const [showUpgrade, setShowUpgrade] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const userCategories = useMemo(
@@ -37,7 +37,10 @@ function CreateCategory({ onCreated }: { onCreated?: () => void }) {
 
   const handleShow = () => {
     if (!canCreateCategory(userCategories.length, entitlements)) {
-      setShowUpgrade(true)
+      openUpgrade({
+        feature: "unlimited_categories",
+        returnPath: window.location.pathname,
+      })
       return
     }
     setShow(true)
@@ -49,7 +52,10 @@ function CreateCategory({ onCreated }: { onCreated?: () => void }) {
 
     if (!canCreateCategory(userCategories.length, entitlements)) {
       setShow(false)
-      setShowUpgrade(true)
+      openUpgrade({
+        feature: "unlimited_categories",
+        returnPath: window.location.pathname,
+      })
       return
     }
 
@@ -103,12 +109,6 @@ function CreateCategory({ onCreated }: { onCreated?: () => void }) {
           </form>
         </DialogContent>
       </Dialog>
-      <UpgradePaywall
-        open={showUpgrade}
-        onOpenChange={setShowUpgrade}
-        feature="unlimited_categories"
-        returnPath={window.location.pathname}
-      />
     </>
   )
 }

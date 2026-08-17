@@ -9,7 +9,7 @@ import "dayjs/locale/es"
 import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
 import { usePlan } from "@/context/PlanProvider"
-import { UpgradePaywall } from "@/components/billing/UpgradePaywall"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/layout/PageHeader"
@@ -51,9 +51,9 @@ export const ExpenseHeader = ({
 }: Props) => {
   const { auth } = useAuth()
   const { entitlements } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
   const { amountsVisible } = usePrivacyAmounts()
   const [scanResult, setScanResult] = useState<ReceiptParseResult | null>(null)
-  const [showScanUpgrade, setShowScanUpgrade] = useState(false)
 
   const monthLabel =
     selectedMonth !== null && selectedYear !== null
@@ -164,7 +164,12 @@ export const ExpenseHeader = ({
         ) : (
           <Button
             variant="outline"
-            onClick={() => setShowScanUpgrade(true)}
+            onClick={() =>
+              openUpgrade({
+                feature: "scan_receipts",
+                returnPath: auth?.id ? `/${auth.id}/expenses` : "/home",
+              })
+            }
             className="min-h-11"
           >
             Escanear ticket · Pro
@@ -189,12 +194,6 @@ export const ExpenseHeader = ({
           </Button>
         )}
       </div>
-      <UpgradePaywall
-        open={showScanUpgrade}
-        onOpenChange={setShowScanUpgrade}
-        feature="scan_receipts"
-        returnPath={auth?.id ? `/${auth.id}/expenses` : "/home"}
-      />
     </div>
   )
 }

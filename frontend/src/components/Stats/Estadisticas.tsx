@@ -4,6 +4,7 @@ import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
 import { useAppData } from "@/context/AppDataProvider"
 import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { InlineUpgradeCard } from "@/components/billing/UpgradePaywall"
 import { getAvailableMonths, listAll } from "@/lib/db/expenses"
 import { normalizeMonths, type MonthYear } from "@/lib/monthUtils"
@@ -55,6 +56,7 @@ function Estadisticas() {
   const { isLinked, getOwnerName } = useHousehold()
   const { accounts, categories: contextCategories, loading: contextLoading } = useAppData()
   const { entitlements, loading: planLoading } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
   const { amountsVisible } = usePrivacyAmounts()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [availableMonths, setAvailableMonths] = useState<MonthYear[]>([])
@@ -214,6 +216,12 @@ function Estadisticas() {
           feature="stats"
           returnPath={auth?.id ? `/${auth.id}/estadisticas` : "/home"}
           extra="Tu período de prueba de 12 días terminó. Activá Pro para seguir viendo el análisis."
+          onUpgradeClick={() =>
+            openUpgrade({
+              feature: "stats",
+              returnPath: auth?.id ? `/${auth.id}/estadisticas` : "/home",
+            })
+          }
         />
       </div>
     )

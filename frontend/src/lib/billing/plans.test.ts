@@ -4,6 +4,7 @@ import {
   canCreateCategory,
   daysLeftUntil,
   FREE_MAX_CATEGORIES,
+  isCheckoutEnabled,
 } from "./plans"
 
 describe("buildEntitlements", () => {
@@ -73,6 +74,12 @@ describe("canCreateCategory", () => {
     )
     expect(canCreateCategory(4, free)).toBe(true)
     expect(canCreateCategory(5, free)).toBe(false)
+  })
+})
+
+describe("isCheckoutEnabled", () => {
+  it("is false unless VITE_BILLING_CHECKOUT_ENABLED=true", () => {
+    expect(isCheckoutEnabled()).toBe(false)
   })
 })
 
