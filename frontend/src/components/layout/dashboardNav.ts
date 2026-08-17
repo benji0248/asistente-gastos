@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react"
-import { BarChart3, CreditCard, Home, House, Receipt, User } from "lucide-react"
+import { BarChart3, CreditCard, Home, House, Receipt, Shield, User } from "lucide-react"
+import { ROLES } from "@/consts"
 
 export interface NavItem {
   to: string
@@ -8,8 +9,8 @@ export interface NavItem {
   match?: (pathname: string) => boolean
 }
 
-export function getDashboardNavItems(userId: string): NavItem[] {
-  return [
+export function getDashboardNavItems(userId: string, role?: number): NavItem[] {
+  const items: NavItem[] = [
     {
       to: "/home",
       label: "Inicio",
@@ -47,4 +48,15 @@ export function getDashboardNavItems(userId: string): NavItem[] {
       match: (pathname) => pathname.includes("/profile"),
     },
   ]
+
+  if (role === ROLES.admin) {
+    items.push({
+      to: "/admin/users",
+      label: "Administración",
+      icon: Shield,
+      match: (pathname) => pathname.startsWith("/admin"),
+    })
+  }
+
+  return items
 }

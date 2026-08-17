@@ -3,8 +3,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import useAuth from "@/hooks/useAuth"
 import useHousehold from "@/hooks/useHousehold"
+import { usePlan } from "@/context/PlanProvider"
+import { useUpgradeModal } from "@/context/UpgradeModalProvider"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { SectionLoader } from "@/components/layout/SectionLoader"
+import { InlineUpgradeCard } from "@/components/billing/UpgradePaywall"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -65,6 +68,8 @@ function initialViewMonth() {
 function TarjetasCredito() {
   const { auth } = useAuth()
   const { isLinked, getOwnerName } = useHousehold()
+  const { entitlements, loading: planLoading } = usePlan()
+  const { openUpgrade } = useUpgradeModal()
   const [viewMonth, setViewMonth] = useState(initialViewMonth)
   const [statements, setStatements] = useState<StoredCreditCardStatement[]>([])
   const [loading, setLoading] = useState(true)
@@ -186,6 +191,29 @@ function TarjetasCredito() {
   const shiftMonth = (delta: -1 | 1) => {
     setViewMonth((current) => shiftViewMonth(current.year, current.month, delta))
     setSelectedStatementId("")
+  }
+
+  if (planLoading) return <SectionLoader />
+
+  if (!entitlements.canUseCreditCards) {
+    return (
+      <div className="space-y-6 sm:space-y-8">
+        <PageHeader
+          title="Tarjetas de crédito"
+          description="Importá estados de cuenta y controlá el pago del mes"
+        />
+        <InlineUpgradeCard
+          feature="credit_cards"
+          returnPath={auth?.id ? `/${auth.id}/tarjetas` : "/home"}
+          onUpgradeClick={() =>
+            openUpgrade({
+              feature: "credit_cards",
+              returnPath: auth?.id ? `/${auth.id}/tarjetas` : "/home",
+            })
+          }
+        />
+      </div>
+    )
   }
 
   if (loading) return <SectionLoader />

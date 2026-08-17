@@ -15,7 +15,7 @@ export function AppSidebar() {
 
   if (!auth?.id) return null
 
-  const navItems = getDashboardNavItems(auth.id)
+  const navItems = getDashboardNavItems(auth.id, auth.role)
 
   const signOut = async () => {
     await logout()

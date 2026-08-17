@@ -213,7 +213,7 @@ export function CategoryPreferences({ categories, onChange, isLinked }: Props) {
       <p className="text-sm text-muted-foreground">
         {isLinked
           ? "Categorías compartidas con tu hogar. Cualquier integrante puede crearlas, renombrarlas u ocultarlas. En los formularios de gastos solo aparece una por nombre."
-          : "Tus categorías de gasto. Podés renombrarlas, ocultarlas o eliminarlas."}
+          : "Tus categorías de gasto (solo las que creás vos). En Free el máximo es 5; Pro no tiene límite."}
       </p>
       <div className="space-y-2">
         {sharedCategories.map(renderCategoryRow)}

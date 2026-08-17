@@ -35,7 +35,7 @@ export function MobileNav() {
 
   if (!auth?.id) return null
 
-  const navItems = getDashboardNavItems(auth.id)
+  const navItems = getDashboardNavItems(auth.id, auth.role)
   const primaryItems = navItems.slice(0, 4)
   const secondaryItems = navItems.slice(4)
 

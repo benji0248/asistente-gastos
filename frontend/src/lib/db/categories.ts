@@ -11,7 +11,10 @@ function normalizeCategory(row: Category): Category {
 export async function listCategories(activeOnly = false): Promise<Category[]> {
   const query = activeOnly ? '?active=true' : ''
   const rows = await apiFetch<Category[]>(`/api/v1/categories${query}`)
-  return (rows ?? []).map(normalizeCategory).sort((a, b) => a.name.localeCompare(b.name))
+  return (rows ?? [])
+    .map(normalizeCategory)
+    .filter((row) => !row.is_system)
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export async function createCategory(_userId: string, name: string): Promise<Category> {
